@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TERMINAL - ASSET 02</title>
+    <style>
+        body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; padding: 20px; line-height: 1.2; font-size: 14px; overflow: hidden; text-shadow: 0 0 5px #00ff41; }
+        .crt::before { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); z-index: 2; background-size: 100% 2px, 3px 100%; pointer-events: none; }
+        .hl { color: #fff; text-shadow: 0 0 10px #fff; }
+        .glitch { color: #ff3e3e; text-shadow: 0 0 5px #ff3e3e; font-weight: bold; }
+        .cursor { display: inline-block; width: 8px; height: 15px; background: #00ff41; animation: b 1s infinite; vertical-align: middle; }
+        @keyframes b { 50% { opacity: 0; } }
+    </style>
+</head>
+<body class="crt">
+    <div id="out"></div><span class="cursor"></span>
+    <script>
+        const ID = "LF-237512-2", SER = "JEDI_01SERIES";
+        const chars = "#%~@₽&";
+        
+        const log = [
+            `[${new Date().toLocaleTimeString()}] RE-LINKING SYSTEM...`, 
+            "ESTABLISHING_UPLINK: OK", 
+            "ENCRYPTION_LAYER: 128-BIT", 
+            "---",
+            "GLITCH_1",
+            "SCANNING_SECTOR_7G...", 
+            "SEARCHING_FOR_SITH_PRESENCE: NONE",
+            "DECRYPTING_KYBER_SIGNATURE...", 
+            "---",
+            "GLITCH_2",
+            `ID: ${ID}`, 
+            `SERIES: ${SER}`, 
+            "STATUS: SECURED", 
+            "---", 
+            "CONNECTION_STABLE. IDLE."
+        ];
+
+        function startGlitch(element) {
+            setInterval(() => {
+                let s = "";
+                for(let i=0; i<6; i++) s += chars[Math.floor(Math.random()*chars.length)];
+                element.innerHTML = `DATA_CORRUPTION: ${s}`;
+            }, 500);
+        }
+
+        async function run() {
+            const o = document.getElementById('out');
+            for(let t of log) {
+                let d = document.createElement('div');
+                if(t.startsWith('GLITCH')) {
+                    d.className = 'glitch';
+                    o.appendChild(d);
+                    startGlitch(d);
+                } else {
+                    if(t.includes('ID:') || t.includes('SERIES:')) d.className = 'hl';
+                    d.innerHTML = t; 
+                    o.appendChild(d);
+                }
+                await new Promise(r => setTimeout(r, Math.random() * 800 + 400));
+            }
+        }
+        run();
+    </script>
+</body>
+</html>
