@@ -16,7 +16,7 @@
         body {
             margin: 0;
             padding: 0;
-            background-color: #3C7FFB; /* Твой фирменный синий фон */
+            background-color: #3C7FFB;
             font-family: -apple-system, SF Pro Display, system-ui, sans-serif;
             color: white;
             height: 100vh;
@@ -42,12 +42,12 @@
             scroll-snap-type: x mandatory;
             width: 100%;
             height: 100%;
-            scrollbar-width: none; /* Убираем скроллбар */
+            scrollbar-width: none;
             -ms-overflow-style: none;
         }
 
         .gallery-container::-webkit-scrollbar {
-            display: none; /* Убираем скроллбар в Chrome/Safari */
+            display: none;
         }
 
         .slide {
@@ -67,12 +67,13 @@
             filter: drop-shadow(0 30px 50px rgba(0,0,0,0.4));
         }
 
-        /* Индикаторы страниц (точки) */
+        /* Индикаторы страниц (генерируются JS) */
         .pagination {
             position: absolute;
             bottom: 30px;
             display: flex;
             gap: 8px;
+            z-index: 10;
         }
 
         .dot {
@@ -99,7 +100,6 @@
             box-shadow: 0 -15px 40px rgba(0,0,0,0.3);
         }
 
-        /* Заголовок и рейтинг */
         .header-section {
             margin-bottom: 24px;
         }
@@ -119,7 +119,7 @@
         }
 
         .stars {
-            color: #FFD60A; /* Цвет звезд iOS */
+            color: #FFD60A;
         }
 
         .reviews-text {
@@ -127,7 +127,6 @@
             font-weight: 400;
         }
 
-        /* Таблица характеристик (iOS Style) */
         .ios-list {
             background: rgba(255, 255, 255, 0.06);
             border-radius: 14px;
@@ -152,34 +151,18 @@
             font-weight: 400;
         }
 
-        .value {
-            font-weight: 400;
-        }
-
-        /* Синий акцент для даты */
         .blue-accent {
             color: var(--ios-blue);
             font-weight: 600;
         }
-
     </style>
 </head>
 <body>
 
     <div class="gallery-wrapper">
-        <div class="gallery-container" id="slider">
-            <div class="slide"><img src="Pics/fig3/1.webp" alt="Guard 1"></div>
-            <div class="slide"><img src="Pics/fig3/2.webp" alt="Guard 2"></div>
-            <div class="slide"><img src="Pics/fig3/3.webp" alt="Guard 3"></div>
-            <div class="slide"><img src="Pics/fig3/4.webp" alt="Guard 4"></div>
-        </div>
+        <div class="gallery-container" id="slider"></div>
         
-        <div class="pagination" id="dots">
-            <div class="dot active"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-        </div>
+        <div class="pagination" id="dots-container"></div>
     </div>
 
     <div class="details-card">
@@ -208,31 +191,46 @@
     </div>
 
     <script>
-        // Инициализация Telegram WebApp
         const tg = window.Telegram.WebApp;
         tg.expand();
         tg.ready();
-        
-        // Красим хедер в цвет фона страницы
         tg.setHeaderColor('#3C7FFB');
 
+        // Список файлов из твоей структуры GitHub
+        const images = ["IMG_2087.webp", "IMG_2088.webp", "IMG_2089.webp"];
+        const folder = "Pics/fig3/";
+
         const slider = document.getElementById('slider');
+        const dotsContainer = document.getElementById('dots-container');
+
+        // Автоматическая генерация слайдов и точек
+        images.forEach((imgName, index) => {
+            // Создаем слайд
+            const slide = document.createElement('div');
+            slide.className = 'slide';
+            slide.innerHTML = `<img src="${folder}${imgName}" alt="Photo ${index + 1}">`;
+            slider.appendChild(slide);
+
+            // Создаем точку
+            const dot = document.createElement('div');
+            dot.className = index === 0 ? 'dot active' : 'dot';
+            dotsContainer.appendChild(dot);
+        });
+
         const dots = document.querySelectorAll('.dot');
         let currentIdx = 0;
 
-        // Логика свайпа и тактильной отдачи
+        // Логика скролла и переключения точек
         slider.addEventListener('scroll', () => {
             const index = Math.round(slider.scrollLeft / window.innerWidth);
             
-            if (index !== currentIdx) {
+            if (index !== currentIdx && index < images.length) {
                 currentIdx = index;
                 
-                // Легкая вибрация при переключении
                 if (tg.HapticFeedback) {
                     tg.HapticFeedback.selectionChanged();
                 }
 
-                // Обновляем активную точку
                 dots.forEach((dot, i) => {
                     dot.classList.toggle('active', i === currentIdx);
                 });
