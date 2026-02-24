@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Jedi Scanner Pro</title>
+    <title>Jedi Scanner</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root {
             --tg-theme-bg-color: #fff;
@@ -19,20 +19,22 @@
             background-color: var(--tg-theme-bg-color);
             color: var(--tg-theme-text-color);
             margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Главная страница — НЕЛЬЗЯ УРЕЗАТЬ */
+        #main-screen {
+            flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        #main-screen {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
             text-align: center;
             padding: 20px;
+            transition: opacity 0.4s ease, transform 0.4s ease;
         }
 
         .holder-img {
@@ -43,6 +45,9 @@
             content: url('Pics/BlackHolder.PNG'); 
         }
 
+        h1 { font-size: 24px; font-weight: 600; margin: 0 0 10px; }
+        p { font-size: 16px; opacity: 0.6; max-width: 280px; line-height: 1.4; margin: 0 0 40px; }
+
         .btn-main {
             background-color: var(--tg-theme-button-color);
             color: var(--tg-theme-button-text-color);
@@ -52,63 +57,62 @@
             font-size: 17px;
             font-weight: 600;
             width: 280px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
-        /* Сканер */
-        #scanner-container {
+        /* Контейнер сканера */
+        #scanner-wrapper {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background: #000;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.4s ease;
         }
 
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+        #reader { width: 100%; height: 100%; }
+        #reader video { object-fit: cover !important; }
 
-        canvas {
-            display: none;
-        }
-
-        .overlay {
+        /* Оверлей сканера */
+        .scan-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none;
             display: flex;
             justify-content: center;
             align-items: center;
+            pointer-events: none;
+            box-shadow: inset 0 0 0 2000px rgba(0, 0, 0, 0.5);
         }
 
-        /* Анимированная рамка (только углы) */
+        /* Только уголки */
         .reticle {
             width: 260px;
             height: 260px;
             position: relative;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Состояние при сканировании (сужение) */
-        .reticle.active {
-            width: 180px;
-            height: 180px;
-            border-radius: 20px;
+        /* Анимация сужения при успехе */
+        .reticle.success {
+            width: 100px;
+            height: 100px;
+            opacity: 0;
         }
 
         .corner {
             position: absolute;
-            width: 30px;
-            height: 30px;
+            width: 40px;
+            height: 40px;
             border: 4px solid #fff;
-            border-radius: 10px;
+            border-radius: 12px;
         }
 
-        .tl { top: 0; left: 0; border-right: 0; border-bottom: 0; border-top-left-radius: 20px; }
-        .tr { top: 0; right: 0; border-left: 0; border-bottom: 0; border-top-right-radius: 20px; }
-        .bl { bottom: 0; left: 0; border-right: 0; border-top: 0; border-bottom-left-radius: 20px; }
-        .br { bottom: 0; right: 0; border-left: 0; border-top: 0; border-bottom-right-radius: 20px; }
+        .tl { top: 0; left: 0; border-right: 0; border-bottom: 0; border-top-right-radius: 0; border-bottom-left-radius: 0; }
+        .tr { top: 0; right: 0; border-left: 0; border-bottom: 0; border-top-left-radius: 0; border-bottom-right-radius: 0; }
+        .bl { bottom: 0; left: 0; border-right: 0; border-top: 0; border-bottom-right-radius: 0; border-top-left-radius: 0; }
+        .br { bottom: 0; right: 0; border-left: 0; border-top: 0; border-bottom-left-radius: 0; border-top-right-radius: 0; }
 
         .close-btn {
             position: absolute;
@@ -117,10 +121,12 @@
             background: rgba(255,255,255,0.2);
             color: #fff;
             border: none;
-            padding: 8px 16px;
+            padding: 8px 18px;
             border-radius: 20px;
             backdrop-filter: blur(10px);
+            font-size: 14px;
             pointer-events: all;
+            z-index: 1001;
         }
     </style>
 </head>
@@ -129,14 +135,14 @@
     <div id="main-screen">
         <div class="holder-img"></div>
         <h1>Отсканируй код</h1>
-        <button class="btn-main" onclick="startScanner()">Сканировать</button>
+        <p>На обратной стороне твоего подарочного пакетика есть QR-код. Отсканируй его!</p>
+        <button class="btn-main" onclick="initScanner()">Сканировать</button>
     </div>
 
-    <div id="scanner-container">
-        <video id="video" playsinline></video>
-        <canvas id="canvas"></canvas>
-        <div class="overlay">
-            <div id="reticle" class="reticle">
+    <div id="scanner-wrapper">
+        <div id="reader"></div>
+        <div class="scan-overlay">
+            <div class="reticle" id="reticle">
                 <div class="corner tl"></div>
                 <div class="corner tr"></div>
                 <div class="corner bl"></div>
@@ -150,73 +156,78 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const reticle = document.getElementById('reticle');
-        let stream = null;
-        let isScanning = false;
+        let html5QrCode = null;
 
-        async function startScanner() {
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                video.srcObject = stream;
-                video.setAttribute("playsinline", true);
-                video.play();
-                
-                document.getElementById('main-screen').style.display = 'none';
-                document.getElementById('scanner-container').style.display = 'block';
-                
-                isScanning = true;
-                requestAnimationFrame(tick);
-            } catch (err) {
-                alert("Ошибка доступа к камере: " + err);
-            }
-        }
+        function initScanner() {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
-        function tick() {
-            if (!isScanning) return;
+            const main = document.getElementById('main-screen');
+            const wrap = document.getElementById('scanner-wrapper');
 
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                canvas.height = video.videoHeight;
-                canvas.width = video.videoWidth;
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                    inversionAttempts: "dontInvert",
-                });
-
-                if (code) {
-                    onSuccess(code.data);
-                    return; // Прекращаем цикл при успехе
-                }
-            }
-            requestAnimationFrame(tick);
-        }
-
-        function onSuccess(data) {
-            isScanning = false;
-            
-            // Вибрация
-            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-            
-            // Эффект сужения рамки
-            reticle.classList.add('active');
+            main.style.opacity = '0';
+            main.style.transform = 'scale(0.95)';
             
             setTimeout(() => {
-                window.location.href = data;
-            }, 400); // Задержка, чтобы увидеть анимацию
+                main.style.display = 'none';
+                wrap.style.display = 'block';
+                setTimeout(() => wrap.style.opacity = '1', 50);
+
+                html5QrCode = new Html5Qrcode("reader");
+                
+                const config = { 
+                    fps: 25, 
+                    qrbox: { width: 260, height: 260 },
+                    aspectRatio: 1.0 
+                };
+
+                html5QrCode.start(
+                    { facingMode: "environment" }, 
+                    config, 
+                    (decodedText) => {
+                        // Эффект сужения углов
+                        document.getElementById('reticle').classList.add('success');
+                        
+                        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                        
+                        // Небольшая задержка для анимации сужения
+                        setTimeout(() => {
+                            window.location.href = decodedText;
+                        }, 300);
+                    }
+                ).catch(err => {
+                    console.error("Camera error:", err);
+                    stopScanner();
+                });
+            }, 400);
         }
 
         function stopScanner() {
-            isScanning = false;
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    html5QrCode.clear();
+                    showMain();
+                }).catch(() => showMain());
+            } else {
+                showMain();
             }
-            document.getElementById('scanner-container').style.display = 'none';
-            document.getElementById('main-screen').style.display = 'flex';
-            reticle.classList.remove('active');
+        }
+
+        function showMain() {
+            const main = document.getElementById('main-screen');
+            const wrap = document.getElementById('scanner-wrapper');
+            const ret = document.getElementById('reticle');
+
+            wrap.style.opacity = '0';
+            ret.classList.remove('success');
+            
+            setTimeout(() => {
+                wrap.style.display = 'none';
+                main.style.display = 'flex';
+                setTimeout(() => {
+                    main.style.opacity = '1';
+                    main.style.transform = 'scale(1)';
+                }, 50);
+            }, 400);
         }
     </script>
 </body>
