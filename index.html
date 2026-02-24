@@ -25,7 +25,7 @@
             flex-direction: column;
         }
 
-        /* ГЛАВНАЯ СТРАНИЦА - СТАТИЧНАЯ */
+        /* Главная страница */
         #main-screen {
             flex: 1;
             display: flex;
@@ -60,7 +60,7 @@
             cursor: pointer;
         }
 
-        /* КОНТЕЙНЕР СКАНЕРА */
+        /* Контейнер сканера */
         #scanner-wrapper {
             display: none;
             position: fixed;
@@ -71,67 +71,42 @@
             transition: opacity 0.4s ease;
         }
 
-        /* Скрываем мусор от библиотеки */
         #reader { width: 100%; height: 100%; }
-        #reader __qr_region_canvas__ { display: none !important; }
-        #reader img { display: none !important; }
-        #reader video { object-fit: cover !important; width: 100% !important; height: 100% !important; }
 
-        /* НАШ ОВЕРЛЕЙ */
-        .scan-overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
+        /* ХАК ДЛЯ СТИЛИЗАЦИИ ВНУТРЕННЕЙ РАМКИ БИБЛИОТЕКИ */
+        #reader__scan_region {
             display: flex;
             justify-content: center;
             align-items: center;
-            pointer-events: none;
-            /* Затемнение вокруг */
-            box-shadow: inset 0 0 0 2000px rgba(0, 0, 0, 0.6);
         }
 
-        /* ТОЛЬКО УГОЛКИ */
-        .reticle {
-            width: 260px;
-            height: 260px;
-            position: relative;
+        /* Делаем саму рамку библиотеки белым квадратом с закруглением */
+        #reader__dashboard_section_csr div[style*="border: 5px solid rgb(255, 255, 255)"], 
+        #reader__scan_region div {
+            border: 3px solid #fff !important;
+            border-radius: 40px !important;
+            box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.6) !important; /* Затемнение вокруг */
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         /* Анимация сужения при сканировании */
-        .reticle.success {
-            width: 40px;
-            height: 40px;
+        .shrinking {
+            transform: scale(0.4);
             opacity: 0;
         }
 
-        .corner {
-            position: absolute;
-            width: 45px;
-            height: 45px;
-            border: 4px solid #fff;
-            border-radius: 12px;
-        }
-
-        /* Оставляем только внешние углы */
-        .tl { top: 0; left: 0; border-right: 0; border-bottom: 0; }
-        .tr { top: 0; right: 0; border-left: 0; border-bottom: 0; }
-        .bl { bottom: 0; left: 0; border-right: 0; border-top: 0; }
-        .br { bottom: 0; right: 0; border-left: 0; border-top: 0; }
-
         .close-btn {
             position: absolute;
-            top: 60px;
+            top: 50px;
             right: 20px;
-            background: rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.2);
             color: #fff;
             border: none;
-            padding: 10px 20px;
+            padding: 8px 18px;
             border-radius: 20px;
-            backdrop-filter: blur(15px);
-            font-size: 15px;
-            font-weight: 500;
-            pointer-events: all;
-            z-index: 1100;
+            backdrop-filter: blur(10px);
+            font-size: 14px;
+            z-index: 1001;
         }
     </style>
 </head>
@@ -146,14 +121,6 @@
 
     <div id="scanner-wrapper">
         <div id="reader"></div>
-        <div class="scan-overlay">
-            <div class="reticle" id="reticle">
-                <div class="corner tl"></div>
-                <div class="corner tr"></div>
-                <div class="corner bl"></div>
-                <div class="corner br"></div>
-            </div>
-        </div>
         <button class="close-btn" onclick="stopScanner()">Закрыть</button>
     </div>
 
@@ -163,48 +130,45 @@
 
         let html5QrCode = null;
 
-        async function initScanner() {
+        function initScanner() {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
             const main = document.getElementById('main-screen');
             const wrap = document.getElementById('scanner-wrapper');
 
-            // Плавное исчезновение главной
             main.style.opacity = '0';
-            main.style.transform = 'scale(0.96)';
-            
-            setTimeout(async () => {
+            setTimeout(() => {
                 main.style.display = 'none';
                 wrap.style.display = 'block';
                 setTimeout(() => wrap.style.opacity = '1', 50);
 
-                html5QrCode = new Html5Qrcode("reader", { verbose: false });
+                html5QrCode = new Html5Qrcode("reader");
                 
-                // Чтобы библиотека не рисовала свою рамку, мы не передаем qrbox в конфиг старта,
-                // а управляем визуалом сами через CSS.
-                const config = { fps: 25 }; 
+                const config = { 
+                    fps: 25, 
+                    // Библиотека сама нарисует квадрат этого размера
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0 
+                };
 
-                try {
-                    await html5QrCode.start(
-                        { facingMode: "environment" }, 
-                        config, 
-                        (decodedText) => {
-                            // 1. Вибрация
-                            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                            
-                            // 2. Анимация сужения углов
-                            document.getElementById('reticle').classList.add('success');
-                            
-                            // 3. Переход
-                            setTimeout(() => {
-                                window.location.href = decodedText;
-                            }, 350);
-                        }
-                    );
-                } catch (err) {
-                    console.error("Camera fail:", err);
+                html5QrCode.start(
+                    { facingMode: "environment" }, 
+                    config, 
+                    (decodedText) => {
+                        // Находим рамку внутри библиотеки и сжимаем её
+                        const region = document.querySelector('#reader__scan_region div');
+                        if(region) region.classList.add('shrinking');
+                        
+                        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                        
+                        setTimeout(() => {
+                            window.location.href = decodedText;
+                        }, 400);
+                    }
+                ).catch(err => {
+                    console.error("Camera error:", err);
                     stopScanner();
-                }
+                });
             }, 400);
         }
 
@@ -222,18 +186,11 @@
         function showMain() {
             const main = document.getElementById('main-screen');
             const wrap = document.getElementById('scanner-wrapper');
-            const ret = document.getElementById('reticle');
-
             wrap.style.opacity = '0';
-            ret.classList.remove('success');
-            
             setTimeout(() => {
                 wrap.style.display = 'none';
                 main.style.display = 'flex';
-                setTimeout(() => {
-                    main.style.opacity = '1';
-                    main.style.transform = 'scale(1)';
-                }, 50);
+                setTimeout(() => main.style.opacity = '1', 50);
             }, 400);
         }
     </script>
