@@ -1,57 +1,114 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TERMINAL - ASSET 01</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Фигурка #1</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; padding: 20px; line-height: 1.2; font-size: 14px; overflow: hidden; text-shadow: 0 0 5px #00ff41; }
-        .crt::before { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); z-index: 2; background-size: 100% 2px, 3px 100%; pointer-events: none; }
-        .hl { color: #fff; text-shadow: 0 0 10px #fff; }
-        .glitch { color: #ff3e3e; text-shadow: 0 0 5px #ff3e3e; }
-        .cursor { display: inline-block; width: 8px; height: 15px; background: #00ff41; animation: b 1s infinite; vertical-align: middle; }
-        @keyframes b { 50% { opacity: 0; } }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #3C7FFB; /* Твой синий фон */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: white;
+        }
+
+        /* Контейнер фигурки */
+        .fig-container {
+            width: 80%;
+            max-width: 300px;
+            margin-bottom: 30px;
+            transition: transform 0.5s ease;
+        }
+
+        .fig-container img {
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 20px 30px rgba(0,0,0,0.3));
+        }
+
+        /* Плашка с характеристиками */
+        .info-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            padding: 24px;
+            width: 85%;
+            max-width: 320px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .info-row {
+            margin-bottom: 15px;
+        }
+
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.7;
+            margin-bottom: 4px;
+        }
+
+        .value {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .highlight {
+            color: #00FFD1; /* Яркий акцент для даты */
+        }
+
+        /* Анимация появления */
+        .fade-in {
+            animation: fadeIn 0.8s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
-<body class="crt">
-    <div id="out"></div><span class="cursor"></span>
-    <script>
-        const ID = "LF-157639-0", SER = "JEDI_01SERIES";
-        const chars = "#%~@₽&";
+<body>
+
+    <div class="fig-container fade-in">
+        <img src="Pics/fig1.png" alt="Figurine">
+    </div>
+
+    <div class="info-card fade-in" style="animation-delay: 0.2s;">
+        <div class="info-row">
+            <div class="label">Номер:</div>
+            <div class="value">#LF-237512-01</div>
+        </div>
         
-        const log = [
-            `[${new Date().toLocaleTimeString()}] BOOTING...`, "CORE_INIT: OK", "GLITCH_DETECTOR: RUNNING", "---",
-            "GLITCH_1", // Место для первых помех
-            "BYPASSING_IMPERIAL_LOCKS...", "MATCH_FOUND: 100%", "---",
-            "GLITCH_2", // Место для вторых помех
-            `ID: ${ID}`, `SERIES: ${SER}`, "STATUS: ACTIVE", "---", "SYSTEM_IDLE"
-        ];
+        <div class="info-row">
+            <div class="label">Серия:</div>
+            <div class="value">JEDI_01SERIES</div>
+        </div>
 
-        function startGlitch(element) {
-            setInterval(() => {
-                let s = "";
-                for(let i=0; i<6; i++) s += chars[Math.floor(Math.random()*chars.length)];
-                element.innerHTML = `DATA_CORRUPTION: ${s}`;
-            }, 500);
-        }
+        <div class="info-row">
+            <div class="label">Дата доставки:</div>
+            <div class="value highlight">25 ФЕВРАЛЯ</div>
+        </div>
+    </div>
 
-        async function run() {
-            const o = document.getElementById('out');
-            for(let t of log) {
-                let d = document.createElement('div');
-                if(t.startsWith('GLITCH')) {
-                    d.className = 'glitch';
-                    o.appendChild(d);
-                    startGlitch(d);
-                } else {
-                    if(t.includes('ID:') || t.includes('SERIES:')) d.className = 'hl';
-                    d.innerHTML = t; 
-                    o.appendChild(d);
-                }
-                await new Promise(r => setTimeout(r, Math.random() * 800 + 400));
-            }
-        }
-        run();
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
     </script>
 </body>
 </html>
