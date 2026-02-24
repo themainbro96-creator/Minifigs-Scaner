@@ -6,119 +6,193 @@
     <title>Фигурка #1</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Системные настройки iOS */
         :root {
-            --ios-dark-bg: rgba(28, 28, 30, 0.8); /* SystemGray6 с прозрачностью */
+            --ios-blue: #007AFF; /* Тот самый синий iOS */
+            --ios-dark-bg: rgba(28, 28, 30, 0.94);
             --ios-border: rgba(255, 255, 255, 0.1);
-            --ios-text-secondary: #8E8E93;
+            --ios-secondary: #8E8E93;
         }
 
         body {
             margin: 0;
-            padding: 0;
-            background-color: #3C7FFB; /* Твой синий фон */
-            font-family: -apple-system, SF Pro Display, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #3C7FFB;
+            font-family: -apple-system, SF Pro Display, sans-serif;
+            color: white;
             display: flex;
             flex-direction: column;
-            align-items: center;
             height: 100vh;
-            color: white;
-            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
         }
 
-        /* Контейнер фигурки */
-        .fig-container {
+        /* Галерея */
+        .gallery-wrapper {
             flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 100%;
-            padding-top: 40px;
-        }
-
-        .fig-container img {
-            max-width: 85%;
-            max-height: 320px;
-            object-fit: contain;
-            /* Тень без блюра для четкости в стиле рендера */
-            filter: drop-shadow(0 25px 40px rgba(0,0,0,0.4));
-        }
-
-        /* Карточка в стиле iOS Dark Mode */
-        .info-card {
-            background: var(--ios-dark-bg);
-            backdrop-filter: blur(25px) saturate(180%);
-            -webkit-backdrop-filter: blur(25px) saturate(180%);
-            border: 0.5px solid var(--ios-border);
-            border-radius: 20px; /* Характерный радиус Apple */
-            padding: 0;
-            width: calc(100% - 32px);
-            max-width: 360px;
-            margin-bottom: 50px; /* Отступ от низа экрана */
+            position: relative;
             overflow: hidden;
         }
 
-        /* Строки таблицы характеристик */
+        .gallery-container {
+            display: flex;
+            overflow-x: scroll;
+            scroll-snap-type: x mandatory;
+            width: 100%;
+            height: 80%;
+            scrollbar-width: none;
+        }
+
+        .gallery-container::-webkit-scrollbar { display: none; }
+
+        .slide {
+            flex: 0 0 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            scroll-snap-align: center;
+        }
+
+        .slide img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            filter: drop-shadow(0 20px 40px rgba(0,0,0,0.4));
+        }
+
+        /* Индикаторы (Точки) */
+        .dots {
+            position: absolute;
+            bottom: 20px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 7px;
+            height: 7px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .dot.active {
+            background: white;
+            transform: scale(1.2);
+        }
+
+        /* Контентная часть */
+        .content-card {
+            background: var(--ios-dark-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 0.5px solid var(--ios-border);
+            border-radius: 30px 30px 0 0;
+            padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .title-block h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .rating {
+            color: #FFD60A; /* Цвет звезд iOS */
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        /* Таблица характеристик */
+        .ios-table {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
         .info-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 14px 20px;
+            padding: 12px 16px;
             border-bottom: 0.5px solid var(--ios-border);
-        }
-
-        .info-row:last-child {
-            border-bottom: none;
-        }
-
-        .label {
             font-size: 15px;
-            color: var(--ios-text-secondary);
-            font-weight: 400;
         }
 
-        .value {
-            font-size: 16px;
-            font-weight: 500;
-            text-align: right;
-        }
+        .info-row:last-child { border-bottom: none; }
 
-        /* Акцент на доставке в стиле iOS (голубой/зеленый) */
-        .highlight {
-            color: #32D74B; /* SystemGreen для темной темы */
-            font-weight: 600;
-        }
+        .label { color: var(--ios-secondary); }
+        .value { font-weight: 500; }
+        .blue-val { color: var(--ios-blue); font-weight: 600; }
 
     </style>
 </head>
 <body>
 
-    <div class="fig-container">
-        <img src="Pics/fig1.png" alt="Figurine">
+    <div class="gallery-wrapper">
+        <div class="gallery-container" id="gallery">
+            <div class="slide"><img src="fig1/1.png"></div>
+            <div class="slide"><img src="fig2/2.png"></div>
+            <div class="slide"><img src="fig3/3.png"></div>
+        </div>
+        <div class="dots" id="dots">
+            <div class="dot active"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
     </div>
 
-    <div class="info-card">
-        <div class="info-row">
-            <span class="label">Номер</span>
-            <span class="value">#LF-237512-01</span>
-        </div>
-        
-        <div class="info-row">
-            <span class="label">Серия</span>
-            <span class="value">JEDI_01SERIES</span>
+    <div class="content-card">
+        <div class="header-row">
+            <div class="title-block">
+                <h1>Фигурка #1</h1>
+                <div class="rating">★★★★★ <span style="color:white; opacity: 0.5; font-size: 12px;">(12 отзывов)</span></div>
+            </div>
+            <div style="font-size: 20px; font-weight: 700;">$0</div>
         </div>
 
-        <div class="info-row">
-            <span class="label">Дата доставки</span>
-            <span class="value highlight">25 февраля</span>
+        <div class="ios-table">
+            <div class="info-row">
+                <span class="label">ID Предмета</span>
+                <span class="value">#LF-237512-01</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Серия</span>
+                <span class="value">JEDI_01</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Доставка</span>
+                <span class="blue-val">25 февраля</span>
+            </div>
         </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
+        const gallery = document.getElementById('gallery');
+        const dots = document.querySelectorAll('.dot');
+        
         tg.expand();
-        // Включаем темную тему для статус-бара ТГ
-        tg.setHeaderColor('#3C7FFB'); 
+        tg.setHeaderColor('#3C7FFB');
+
+        // Свайпы и вибрация
+        let lastIndex = 0;
+        gallery.addEventListener('scroll', () => {
+            const index = Math.round(gallery.scrollLeft / window.innerWidth);
+            if (index !== lastIndex) {
+                if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+                dots.forEach(d => d.classList.remove('active'));
+                dots[index].classList.add('active');
+                lastIndex = index;
+            }
+        });
     </script>
 </body>
 </html>
