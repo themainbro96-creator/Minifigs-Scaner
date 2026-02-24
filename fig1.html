@@ -6,109 +6,119 @@
     <title>Фигурка #1</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        /* Системные настройки iOS */
+        :root {
+            --ios-dark-bg: rgba(28, 28, 30, 0.8); /* SystemGray6 с прозрачностью */
+            --ios-border: rgba(255, 255, 255, 0.1);
+            --ios-text-secondary: #8E8E93;
+        }
+
         body {
             margin: 0;
             padding: 0;
             background-color: #3C7FFB; /* Твой синий фон */
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: -apple-system, SF Pro Display, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
             height: 100vh;
             color: white;
+            -webkit-font-smoothing: antialiased;
         }
 
         /* Контейнер фигурки */
         .fig-container {
-            width: 80%;
-            max-width: 300px;
-            margin-bottom: 30px;
-            transition: transform 0.5s ease;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding-top: 40px;
         }
 
         .fig-container img {
-            width: 100%;
-            height: auto;
-            filter: drop-shadow(0 20px 30px rgba(0,0,0,0.3));
+            max-width: 85%;
+            max-height: 320px;
+            object-fit: contain;
+            /* Тень без блюра для четкости в стиле рендера */
+            filter: drop-shadow(0 25px 40px rgba(0,0,0,0.4));
         }
 
-        /* Плашка с характеристиками */
+        /* Карточка в стиле iOS Dark Mode */
         .info-card {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 24px;
-            padding: 24px;
-            width: 85%;
-            max-width: 320px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            background: var(--ios-dark-bg);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border: 0.5px solid var(--ios-border);
+            border-radius: 20px; /* Характерный радиус Apple */
+            padding: 0;
+            width: calc(100% - 32px);
+            max-width: 360px;
+            margin-bottom: 50px; /* Отступ от низа экрана */
+            overflow: hidden;
         }
 
+        /* Строки таблицы характеристик */
         .info-row {
-            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            border-bottom: 0.5px solid var(--ios-border);
         }
 
         .info-row:last-child {
-            margin-bottom: 0;
+            border-bottom: none;
         }
 
         .label {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            opacity: 0.7;
-            margin-bottom: 4px;
+            font-size: 15px;
+            color: var(--ios-text-secondary);
+            font-weight: 400;
         }
 
         .value {
-            font-size: 18px;
-            font-weight: 700;
+            font-size: 16px;
+            font-weight: 500;
+            text-align: right;
         }
 
+        /* Акцент на доставке в стиле iOS (голубой/зеленый) */
         .highlight {
-            color: #00FFD1; /* Яркий акцент для даты */
+            color: #32D74B; /* SystemGreen для темной темы */
+            font-weight: 600;
         }
 
-        /* Анимация появления */
-        .fade-in {
-            animation: fadeIn 0.8s ease forwards;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
     </style>
 </head>
 <body>
 
-    <div class="fig-container fade-in">
+    <div class="fig-container">
         <img src="Pics/fig1.png" alt="Figurine">
     </div>
 
-    <div class="info-card fade-in" style="animation-delay: 0.2s;">
+    <div class="info-card">
         <div class="info-row">
-            <div class="label">Номер:</div>
-            <div class="value">#LF-237512-01</div>
+            <span class="label">Номер</span>
+            <span class="value">#LF-237512-01</span>
         </div>
         
         <div class="info-row">
-            <div class="label">Серия:</div>
-            <div class="value">JEDI_01SERIES</div>
+            <span class="label">Серия</span>
+            <span class="value">JEDI_01SERIES</span>
         </div>
 
         <div class="info-row">
-            <div class="label">Дата доставки:</div>
-            <div class="value highlight">25 ФЕВРАЛЯ</div>
+            <span class="label">Дата доставки</span>
+            <span class="value highlight">25 февраля</span>
         </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.ready();
+        // Включаем темную тему для статус-бара ТГ
+        tg.setHeaderColor('#3C7FFB'); 
     </script>
 </body>
 </html>
