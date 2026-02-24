@@ -9,13 +9,15 @@
     <style>
         :root {
             --tg-theme-bg-color: #fff;
-            --tg-theme-button-color: #3C7FFB;
+            --tg-theme-text-color: #000;
+            --tg-theme-button-color: #007aff;
             --tg-theme-button-text-color: #fff;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--tg-theme-bg-color);
+            color: var(--tg-theme-text-color);
             margin: 0;
             height: 100vh;
             overflow: hidden;
@@ -23,73 +25,107 @@
             flex-direction: column;
         }
 
+        /* =========================================
+           ГЛАВНЫЙ ЭКРАН (СОХРАНЕН БЕЗ ИЗМЕНЕНИЙ)
+           ========================================= */
         #main-screen {
             flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px;
             text-align: center;
+            padding: 20px;
         }
 
         .holder-img {
-            width: 220px;
+            width: 200px;
+            height: auto;
+            opacity: 0.75;
             margin-bottom: 30px;
-            content: url('Pics/BlackHolder.PNG');
+            content: url('Pics/BlackHolder.PNG'); 
         }
+
+        h1 { font-size: 24px; font-weight: 600; margin: 0 0 10px; }
+        p { font-size: 16px; opacity: 0.6; max-width: 280px; line-height: 1.4; margin: 0 0 40px; }
 
         .btn-main {
             background-color: var(--tg-theme-button-color);
             color: var(--tg-theme-button-text-color);
             border: none;
-            padding: 18px 32px;
-            border-radius: 16px;
-            font-size: 18px;
+            padding: 16px 32px;
+            border-radius: 14px;
+            font-size: 17px;
             font-weight: 600;
             width: 280px;
             cursor: pointer;
         }
 
-        /* КОНТЕЙНЕР СКАНЕРА */
+        /* =========================================
+           НОВЫЙ ЧИСТЫЙ ЭКРАН СКАНЕРА
+           ========================================= */
         #scanner-wrapper {
-            display: none;
+            display: none; 
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #000;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #000;
             z-index: 1000;
         }
 
         #reader {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #reader video {
             width: 100% !important;
             height: 100% !important;
+            object-fit: cover !important; 
         }
 
-        /* ХАК ДЛЯ СТИЛИЗАЦИИ РАМКИ БИБЛИОТЕКИ (iOS STYLE) */
-        #reader__scan_region {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        /* Делаем стандартную рамку белой, квадратной и с нашими углами */
-        #reader__scan_region div[style*="border"] {
-            border: 4px solid #fff !important;
-            border-radius: 40px !important;
-            box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.6) !important; /* Затемнение вокруг */
-            width: 260px !important;
-            height: 260px !important;
-        }
-
-        /* Убираем лишние кнопки и текст библиотеки */
-        #reader__dashboard_section_csr, 
-        #reader__dashboard_section_swaplink, 
-        #reader__status_span {
+        #reader__scan_region, 
+        #reader__dashboard_section_csr,
+        #reader__dashboard_section_swaplink {
             display: none !important;
         }
 
-        video {
-            object-fit: cover !important;
+        #custom-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .scan-frame {
+            width: 250px;
+            height: 250px;
+            /* Изменено: прозрачность 0 и закругление */
+            border: 4px solid rgba(255, 255, 255, 0); 
+            border-radius: 30px;
+            position: relative;
+            box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.65);
+            box-sizing: border-box;
+        }
+
+        .scan-text {
+            position: absolute;
+            bottom: -50px;
+            left: 0;
+            width: 100%;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 500;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
         }
     </style>
 </head>
@@ -98,12 +134,18 @@
     <div id="main-screen">
         <div class="holder-img"></div>
         <h1>Отсканируй код</h1>
-        <p style="opacity: 0.6; margin-bottom: 40px;">Наведи камеру на QR-код на пакетике</p>
+        <p>На обратной стороне твоего подарочного пакетика есть QR-код. Отсканируй его!</p>
         <button class="btn-main" onclick="startScanner()">Сканировать</button>
     </div>
 
     <div id="scanner-wrapper">
         <div id="reader"></div>
+        
+        <div id="custom-overlay">
+            <div class="scan-frame">
+                <div class="scan-text">Помести код в квадрат</div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -113,7 +155,9 @@
         let html5QrCode = null;
 
         function startScanner() {
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            if (tg.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('medium');
+            }
 
             document.getElementById('main-screen').style.display = 'none';
             document.getElementById('scanner-wrapper').style.display = 'block';
@@ -121,11 +165,10 @@
             html5QrCode = new Html5Qrcode("reader");
 
             const config = { 
-                fps: 25, 
-                qrbox: { width: 260, height: 260 }, // Строго квадратная область
-                aspectRatio: 1.0,
-                experimentalFeatures: {
-                    useBarCodeDetectorIfSupported: true // Ускоряет скан на новых iOS
+                fps: 20, 
+                // qrbox как функция гарантирует, что поиск идет строго в этой области
+                qrbox: (viewfinderWidth, viewfinderHeight) => {
+                    return { width: 250, height: 250 };
                 }
             };
 
@@ -133,25 +176,23 @@
                 { facingMode: "environment" }, 
                 config, 
                 (decodedText) => {
-                    // Успех! Вибрируем и переходим
-                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    if (tg.HapticFeedback) {
+                        tg.HapticFeedback.notificationOccurred('success');
+                    }
                     
                     html5QrCode.stop().then(() => {
                         window.location.href = decodedText;
                     }).catch(() => {
                         window.location.href = decodedText;
                     });
-                }
-            ).catch(err => {
-                console.error("Camera error:", err);
-                alert("Ошибка камеры. Проверьте разрешения.");
-                resetUI();
+                },
+                (errorMessage) => {}
+            ).catch((err) => {
+                console.error("Не удалось запустить камеру:", err);
+                document.getElementById('scanner-wrapper').style.display = 'none';
+                document.getElementById('main-screen').style.display = 'flex';
+                alert("Ошибка доступа к камере. Разрешите доступ и попробуйте снова.");
             });
-        }
-
-        function resetUI() {
-            document.getElementById('scanner-wrapper').style.display = 'none';
-            document.getElementById('main-screen').style.display = 'flex';
         }
     </script>
 </body>
