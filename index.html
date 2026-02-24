@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Jedi Scanner</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
         :root {
             --tg-theme-bg-color: #fff;
@@ -25,9 +25,6 @@
             flex-direction: column;
         }
 
-        /* =========================================
-           ГЛАВНЫЙ ЭКРАН (СОХРАНЕН БЕЗ ИЗМЕНЕНИЙ)
-           ========================================= */
         #main-screen {
             flex: 1;
             display: flex;
@@ -61,16 +58,11 @@
             cursor: pointer;
         }
 
-        /* =========================================
-           НОВЫЙ ЧИСТЫЙ ЭКРАН СКАНЕРА
-           ========================================= */
         #scanner-wrapper {
             display: none; 
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
             background-color: #000;
             z-index: 1000;
         }
@@ -78,7 +70,16 @@
         #reader {
             width: 100%;
             height: 100%;
-            overflow: hidden;
+        }
+
+        /* Полное подавление внутреннего интерфейса библиотеки */
+        #reader__scan_region {
+            /* Убираем любые системные рамки, которые рисует библиотека */
+            border: none !important;
+        }
+        
+        #reader__scan_region div {
+            border: none !important; /* Убираем даже прозрачные границы */
         }
 
         #reader video {
@@ -87,18 +88,11 @@
             object-fit: cover !important; 
         }
 
-        #reader__scan_region, 
-        #reader__dashboard_section_csr,
-        #reader__dashboard_section_swaplink {
-            display: none !important;
-        }
-
+        /* Наш оверлей */
         #custom-overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -108,24 +102,30 @@
         .scan-frame {
             width: 250px;
             height: 250px;
-            /* Изменено: прозрачность 0 и закругление */
-            border: 4px solid rgba(255, 255, 255, 0); 
-            border-radius: 30px;
+            /* ВООБЩЕ невидимый квадрат */
+            border: none !important; 
+            background: transparent;
             position: relative;
+            /* Затемнение экрана вокруг центральной зоны */
             box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.65);
-            box-sizing: border-box;
         }
 
         .scan-text {
             position: absolute;
-            bottom: -50px;
-            left: 0;
-            width: 100%;
+            bottom: -60px;
+            left: 0; width: 100%;
             color: #fff;
             font-size: 15px;
             font-weight: 500;
             text-align: center;
             text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        /* Прячем служебные элементы */
+        #reader__dashboard_section_csr,
+        #reader__dashboard_section_swaplink,
+        #reader img {
+            display: none !important;
         }
     </style>
 </head>
@@ -140,10 +140,9 @@
 
     <div id="scanner-wrapper">
         <div id="reader"></div>
-        
         <div id="custom-overlay">
             <div class="scan-frame">
-                <div class="scan-text">Помести код в квадрат</div>
+                <div class="scan-text">Наведи камеру на центр экрана</div>
             </div>
         </div>
     </div>
@@ -165,11 +164,10 @@
             html5QrCode = new Html5Qrcode("reader");
 
             const config = { 
-                fps: 20, 
-                // qrbox как функция гарантирует, что поиск идет строго в этой области
-                qrbox: (viewfinderWidth, viewfinderHeight) => {
-                    return { width: 250, height: 250 };
-                }
+                fps: 25, 
+                // Устанавливаем зону поиска кода (квадрат по центру)
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
             };
 
             html5QrCode.start(
@@ -186,13 +184,19 @@
                         window.location.href = decodedText;
                     });
                 },
-                (errorMessage) => {}
+                (errorMessage) => {
+                    // Игнорируем ошибки сканирования пустых кадров
+                }
             ).catch((err) => {
-                console.error("Не удалось запустить камеру:", err);
-                document.getElementById('scanner-wrapper').style.display = 'none';
-                document.getElementById('main-screen').style.display = 'flex';
-                alert("Ошибка доступа к камере. Разрешите доступ и попробуйте снова.");
+                console.error("Camera access error:", err);
+                resetToMain();
+                alert("Пожалуйста, разрешите доступ к камере.");
             });
+        }
+
+        function resetToMain() {
+            document.getElementById('scanner-wrapper').style.display = 'none';
+            document.getElementById('main-screen').style.display = 'flex';
         }
     </script>
 </body>
