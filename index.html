@@ -25,7 +25,7 @@
             flex-direction: column;
         }
 
-        /* Главная страница — НЕЛЬЗЯ УРЕЗАТЬ */
+        /* ГЛАВНАЯ СТРАНИЦА - СТАТИЧНАЯ */
         #main-screen {
             flex: 1;
             display: flex;
@@ -58,10 +58,9 @@
             font-weight: 600;
             width: 280px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
-        /* Контейнер сканера */
+        /* КОНТЕЙНЕР СКАНЕРА */
         #scanner-wrapper {
             display: none;
             position: fixed;
@@ -72,10 +71,13 @@
             transition: opacity 0.4s ease;
         }
 
+        /* Скрываем мусор от библиотеки */
         #reader { width: 100%; height: 100%; }
-        #reader video { object-fit: cover !important; }
+        #reader __qr_region_canvas__ { display: none !important; }
+        #reader img { display: none !important; }
+        #reader video { object-fit: cover !important; width: 100% !important; height: 100% !important; }
 
-        /* Оверлей сканера */
+        /* НАШ ОВЕРЛЕЙ */
         .scan-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -83,10 +85,11 @@
             justify-content: center;
             align-items: center;
             pointer-events: none;
-            box-shadow: inset 0 0 0 2000px rgba(0, 0, 0, 0.5);
+            /* Затемнение вокруг */
+            box-shadow: inset 0 0 0 2000px rgba(0, 0, 0, 0.6);
         }
 
-        /* Только уголки */
+        /* ТОЛЬКО УГОЛКИ */
         .reticle {
             width: 260px;
             height: 260px;
@@ -94,39 +97,41 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Анимация сужения при успехе */
+        /* Анимация сужения при сканировании */
         .reticle.success {
-            width: 100px;
-            height: 100px;
+            width: 40px;
+            height: 40px;
             opacity: 0;
         }
 
         .corner {
             position: absolute;
-            width: 40px;
-            height: 40px;
+            width: 45px;
+            height: 45px;
             border: 4px solid #fff;
             border-radius: 12px;
         }
 
-        .tl { top: 0; left: 0; border-right: 0; border-bottom: 0; border-top-right-radius: 0; border-bottom-left-radius: 0; }
-        .tr { top: 0; right: 0; border-left: 0; border-bottom: 0; border-top-left-radius: 0; border-bottom-right-radius: 0; }
-        .bl { bottom: 0; left: 0; border-right: 0; border-top: 0; border-bottom-right-radius: 0; border-top-left-radius: 0; }
-        .br { bottom: 0; right: 0; border-left: 0; border-top: 0; border-bottom-left-radius: 0; border-top-right-radius: 0; }
+        /* Оставляем только внешние углы */
+        .tl { top: 0; left: 0; border-right: 0; border-bottom: 0; }
+        .tr { top: 0; right: 0; border-left: 0; border-bottom: 0; }
+        .bl { bottom: 0; left: 0; border-right: 0; border-top: 0; }
+        .br { bottom: 0; right: 0; border-left: 0; border-top: 0; }
 
         .close-btn {
             position: absolute;
-            top: 50px;
+            top: 60px;
             right: 20px;
-            background: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.25);
             color: #fff;
             border: none;
-            padding: 8px 18px;
+            padding: 10px 20px;
             border-radius: 20px;
-            backdrop-filter: blur(10px);
-            font-size: 14px;
+            backdrop-filter: blur(15px);
+            font-size: 15px;
+            font-weight: 500;
             pointer-events: all;
-            z-index: 1001;
+            z-index: 1100;
         }
     </style>
 </head>
@@ -158,46 +163,48 @@
 
         let html5QrCode = null;
 
-        function initScanner() {
+        async function initScanner() {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
             const main = document.getElementById('main-screen');
             const wrap = document.getElementById('scanner-wrapper');
 
+            // Плавное исчезновение главной
             main.style.opacity = '0';
-            main.style.transform = 'scale(0.95)';
+            main.style.transform = 'scale(0.96)';
             
-            setTimeout(() => {
+            setTimeout(async () => {
                 main.style.display = 'none';
                 wrap.style.display = 'block';
                 setTimeout(() => wrap.style.opacity = '1', 50);
 
-                html5QrCode = new Html5Qrcode("reader");
+                html5QrCode = new Html5Qrcode("reader", { verbose: false });
                 
-                const config = { 
-                    fps: 25, 
-                    qrbox: { width: 260, height: 260 },
-                    aspectRatio: 1.0 
-                };
+                // Чтобы библиотека не рисовала свою рамку, мы не передаем qrbox в конфиг старта,
+                // а управляем визуалом сами через CSS.
+                const config = { fps: 25 }; 
 
-                html5QrCode.start(
-                    { facingMode: "environment" }, 
-                    config, 
-                    (decodedText) => {
-                        // Эффект сужения углов
-                        document.getElementById('reticle').classList.add('success');
-                        
-                        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                        
-                        // Небольшая задержка для анимации сужения
-                        setTimeout(() => {
-                            window.location.href = decodedText;
-                        }, 300);
-                    }
-                ).catch(err => {
-                    console.error("Camera error:", err);
+                try {
+                    await html5QrCode.start(
+                        { facingMode: "environment" }, 
+                        config, 
+                        (decodedText) => {
+                            // 1. Вибрация
+                            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                            
+                            // 2. Анимация сужения углов
+                            document.getElementById('reticle').classList.add('success');
+                            
+                            // 3. Переход
+                            setTimeout(() => {
+                                window.location.href = decodedText;
+                            }, 350);
+                        }
+                    );
+                } catch (err) {
+                    console.error("Camera fail:", err);
                     stopScanner();
-                });
+                }
             }, 400);
         }
 
