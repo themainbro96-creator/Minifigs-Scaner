@@ -12,11 +12,10 @@
             --tg-theme-text-color: #000;
             --tg-theme-button-color: #007aff;
             --tg-theme-button-text-color: #fff;
-            --tg-theme-hint-color: #999;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--tg-theme-bg-color);
             color: var(--tg-theme-text-color);
             margin: 0;
@@ -25,204 +24,176 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
-            text-align: center;
             overflow: hidden;
         }
 
-        /* Главный экран */
+        /* Начальный экран */
         #main-screen {
             display: flex;
             flex-direction: column;
             align-items: center;
+            text-align: center;
             padding: 20px;
-            transition: opacity 0.3s;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .holder-img {
-            width: 180px;
+            width: 200px;
             height: auto;
             opacity: 0.75;
             margin-bottom: 30px;
+            /* Исправлено под твой регистр в GitHub */
+            content: url('Pics/BlackHolder.PNG'); 
         }
 
-        h1 {
-            font-size: 24px;
-            margin: 0 0 8px 0;
-            font-weight: 600;
-        }
+        h1 { font-size: 24px; font-weight: 600; margin: 0 0 10px; }
+        p { font-size: 16px; opacity: 0.6; max-width: 280px; line-height: 1.4; margin: 0 0 40px; }
 
-        p {
-            font-size: 15px;
-            color: var(--tg-theme-text-color);
-            opacity: 0.75;
-            max-width: 260px;
-            margin: 0 0 40px 0;
-            line-height: 1.4;
-        }
-
-        .tg-button {
+        .btn-main {
             background-color: var(--tg-theme-button-color);
             color: var(--tg-theme-button-text-color);
             border: none;
-            padding: 14px 20px;
-            border-radius: 12px;
+            padding: 16px 32px;
+            border-radius: 14px;
             font-size: 17px;
             font-weight: 600;
-            width: 260px;
+            width: 280px;
             cursor: pointer;
-            transition: transform 0.1s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
-        .tg-button:active {
-            transform: scale(0.96);
-        }
-
-        /* Экран сканера */
-        #scanner-container {
+        /* Контейнер сканера */
+        #scanner-wrapper {
             display: none;
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0; left: 0; width: 100%; height: 100%;
             background: #000;
-            z-index: 100;
+            z-index: 1000;
         }
 
-        #reader {
-            width: 100%;
-            height: 100%;
-        }
+        #reader { width: 100%; height: 100%; }
 
-        /* Сетка сканера (iOS style) */
-        .overlay {
+        /* Оверлей сканера */
+        .scan-overlay {
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0; left: 0; width: 100%; height: 100%;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             pointer-events: none;
         }
 
-        .scan-region {
-            width: 250px;
-            height: 250px;
+        /* Та самая рамка */
+        .reticle {
+            width: 260px;
+            height: 260px;
             position: relative;
-            box-shadow: 0 0 0 1000px rgba(0,0,0,0.6); /* Затемнение */
+            /* Создаем эффект "дырки" в центре */
+            box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.7);
+            border-radius: 40px;
         }
 
-        /* Углы */
-        .corner {
+        .reticle::before, .reticle::after, .reticle .inner-c::before, .reticle .inner-c::after {
+            content: "";
             position: absolute;
-            width: 40px;
-            height: 40px;
-            border: 4px solid #fff;
-            border-radius: 15px;
+            width: 50px;
+            height: 50px;
+            border-color: #fff;
+            border-style: solid;
+            border-width: 0;
         }
-        .tl { top: -2px; left: -2px; border-right: 0; border-bottom: 0; }
-        .tr { top: -2px; right: -2px; border-left: 0; border-bottom: 0; }
-        .bl { bottom: -2px; left: -2px; border-right: 0; border-top: 0; }
-        .br { bottom: -2px; right: -2px; border-left: 0; border-top: 0; }
 
-        /* Кнопка галереи (iOS style) */
-        .gallery-btn {
+        /* Рисуем ровные уголки */
+        .reticle::before { top: 0; left: 0; border-top-width: 4px; border-left-width: 4px; border-top-left-radius: 30px; }
+        .reticle::after { top: 0; right: 0; border-top-width: 4px; border-right-width: 4px; border-top-right-radius: 30px; }
+        .inner-c::before { bottom: 0; left: 0; border-bottom-width: 4px; border-left-width: 4px; border-bottom-left-radius: 30px; }
+        .inner-c::after { bottom: 0; right: 0; border-bottom-width: 4px; border-right-width: 4px; border-bottom-right-radius: 30px; }
+
+        .scan-hint {
+            color: #fff;
+            margin-top: 40px;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        /* Кнопка закрытия */
+        .close-btn {
             position: absolute;
-            bottom: 60px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60px;
-            height: 60px;
+            top: 50px;
+            right: 20px;
             background: rgba(255,255,255,0.2);
-            backdrop-filter: blur(10px);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: all;
+            color: #fff;
             border: none;
-        }
-
-        .gallery-btn svg {
-            fill: #fff;
-            width: 28px;
-            height: 28px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
 
     <div id="main-screen">
-        <img src="Pics/BlackHolder.png" alt="Holder" class="holder-img">
+        <div class="holder-img"></div>
         <h1>Отсканируй код</h1>
         <p>На обратной стороне твоего подарочного пакетика есть QR-код. Отсканируй его!</p>
-        <button class="tg-button" onclick="startScanner()">Сканировать</button>
+        <button class="btn-main" onclick="initScanner()">Сканировать</button>
     </div>
 
-    <div id="scanner-container">
+    <div id="scanner-wrapper">
         <div id="reader"></div>
-        <div class="overlay">
-            <div class="scan-region">
-                <div class="corner tl"></div>
-                <div class="corner tr"></div>
-                <div class="corner bl"></div>
-                <div class="corner br"></div>
+        <div class="scan-overlay">
+            <div class="reticle">
+                <div class="inner-c" style="width:100%; height:100%; position:relative;"></div>
             </div>
+            <div class="scan-hint">Помести код в квадрат</div>
         </div>
-        <button class="gallery-btn" onclick="document.getElementById('file-input').click()">
-            <svg viewBox="0 0 24 24"><path d="M19,5V19H5V5H19M19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M13.96,12.29L11.21,15.83L9.25,13.47L6.5,17H17.5L13.96,12.29Z"/></svg>
-        </button>
-        <input type="file" id="file-input" accept="image/*" style="display:none" onchange="scanFile(this)">
+        <button class="close-btn" onclick="stopScanner()">Закрыть</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Разворачиваем на весь экран
+        tg.expand();
 
-        // Применяем цвета темы
-        document.documentElement.style.setProperty('--tg-theme-bg-color', tg.backgroundColor);
-        document.documentElement.style.setProperty('--tg-theme-text-color', tg.textColor);
-        document.documentElement.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color);
-        document.documentElement.style.setProperty('--tg-theme-button-text-color', tg.themeParams.button_text_color);
+        let scanner = null;
 
-        let html5QrCode;
+        function initScanner() {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
-        function startScanner() {
-            // Вибрация
-            if (tg.HapticFeedback) {
-                tg.HapticFeedback.impactOccurred('medium');
-            }
+            document.getElementById('main-screen').style.display = 'none';
+            document.getElementById('scanner-wrapper').style.display = 'block';
 
-            document.getElementById('main-screen').style.opacity = '0';
-            setTimeout(() => {
-                document.getElementById('main-screen').style.display = 'none';
-                document.getElementById('scanner-container').style.display = 'block';
-                
-                html5QrCode = new Html5Qrcode("reader");
-                const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            scanner = new Html5Qrcode("reader");
+            
+            const config = { 
+                fps: 20, 
+                qrbox: { width: 260, height: 260 },
+                aspectRatio: 1.0
+            };
 
-                html5QrCode.start(
-                    { facingMode: "environment" }, 
-                    config, 
-                    onScanSuccess
-                );
-            }, 300);
+            scanner.start(
+                { facingMode: "environment" }, 
+                config, 
+                (decodedText) => {
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    // Автоматический переход при наведении
+                    window.location.href = decodedText;
+                }
+            ).catch(err => {
+                alert("Ошибка камеры: " + err);
+                stopScanner();
+            });
         }
 
-        function onScanSuccess(decodedText) {
-            // Вибрация при успехе
-            if (tg.HapticFeedback) {
-                tg.HapticFeedback.notificationOccurred('success');
-            }
-            // Переходим по ссылке (наши fig1.html и т.д.)
-            window.location.href = decodedText;
-        }
-
-        function scanFile(input) {
-            if (input.files.length === 0) return;
-            const file = input.files[0];
-            const reader = new Html5Qrcode("reader");
-            reader.scanFile(file, true)
-                .then(onScanSuccess)
-                .catch(err => {
-                    alert("QR-код не найден на фото");
+        function stopScanner() {
+            if (scanner) {
+                scanner.stop().then(() => {
+                    document.getElementById('scanner-wrapper').style.display = 'none';
+                    document.getElementById('main-screen').style.display = 'flex';
                 });
+            }
         }
     </script>
 </body>
