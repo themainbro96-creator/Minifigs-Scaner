@@ -15,7 +15,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: -apple-system, SF Pro Display, sans-serif;
             background-color: var(--tg-theme-bg-color);
             color: var(--tg-theme-text-color);
             margin: 0;
@@ -25,9 +25,6 @@
             flex-direction: column;
         }
 
-        /* =========================================
-           ГЛАВНЫЙ ЭКРАН (СОХРАНЕН БЕЗ ИЗМЕНЕНИЙ)
-           ========================================= */
         #main-screen {
             flex: 1;
             display: flex;
@@ -41,13 +38,9 @@
         .holder-img {
             width: 200px;
             height: auto;
-            opacity: 0.75;
-            margin-bottom: 30px;
             content: url('Pics/BlackHolder.PNG'); 
+            margin-bottom: 30px;
         }
-
-        h1 { font-size: 24px; font-weight: 600; margin: 0 0 10px; }
-        p { font-size: 16px; opacity: 0.6; max-width: 280px; line-height: 1.4; margin: 0 0 40px; }
 
         .btn-main {
             background-color: var(--tg-theme-button-color);
@@ -61,77 +54,34 @@
             cursor: pointer;
         }
 
-        /* =========================================
-           НОВЫЙ ЧИСТЫЙ ЭКРАН СКАНЕРА
-           ========================================= */
+        /* КОНТЕЙНЕР СКАНЕРА */
         #scanner-wrapper {
-            display: none; /* Скрыт до нажатия кнопки */
+            display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: #000;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
             z-index: 1000;
         }
 
-        /* Блок, куда библиотека кладет видео */
         #reader {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-
-        /* Жестко заставляем видео заполнять весь экран без искажений пропорций */
-        #reader video {
             width: 100% !important;
             height: 100% !important;
-            object-fit: cover !important; 
         }
 
-        /* УБИВАЕМ родной кривой интерфейс библиотеки */
-        #reader__scan_region, 
-        #reader__dashboard_section_csr,
-        #reader__dashboard_section_swaplink {
+        /* УБИРАЕМ ВСЕ ЛИШНИЕ КВАДРАТЫ И ОСТАВЛЯЕМ ТОЛЬКО ОДИН РОДНОЙ */
+        #reader__scan_region {
+            border: none !important;
+        }
+
+        #reader__scan_region div {
+            border: 3px solid #007AFF !important; /* Делаем рамку синей в стиле iOS */
+            border-radius: 30px !important;
+            box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.6) !important;
+        }
+
+        /* Убираем кнопку "Stop Scanning" от библиотеки */
+        #reader__dashboard_section_csr button {
             display: none !important;
-        }
-
-        /* НАШ ИДЕАЛЬНЫЙ ОВЕРЛЕЙ (рисуется поверх видео) */
-        #custom-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: none; /* Чтобы не мешал кликам (если понадобятся) */
-        }
-
-        /* Красивый и ровный квадрат */
-        .scan-frame {
-            width: 250px;
-            height: 250px;
-            border: 4px solid #fff;
-            border-radius: 30px;
-            position: relative;
-            /* Именно эта огромная тень создает затемнение всего остального экрана */
-            box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.65);
-            box-sizing: border-box;
-        }
-
-        /* Текст-подсказка под квадратом */
-        .scan-text {
-            position: absolute;
-            bottom: -50px;
-            left: 0;
-            width: 100%;
-            color: #fff;
-            font-size: 15px;
-            font-weight: 500;
-            text-align: center;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
         }
     </style>
 </head>
@@ -140,18 +90,12 @@
     <div id="main-screen">
         <div class="holder-img"></div>
         <h1>Отсканируй код</h1>
-        <p>На обратной стороне твоего подарочного пакетика есть QR-код. Отсканируй его!</p>
+        <p>Помести QR-код с пакетика в рамку</p>
         <button class="btn-main" onclick="startScanner()">Сканировать</button>
     </div>
 
     <div id="scanner-wrapper">
         <div id="reader"></div>
-        
-        <div id="custom-overlay">
-            <div class="scan-frame">
-                <div class="scan-text">Помести код в квадрат</div>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -161,50 +105,50 @@
         let html5QrCode = null;
 
         function startScanner() {
-            // Легкая вибрация при старте (если поддерживается)
-            if (tg.HapticFeedback) {
-                tg.HapticFeedback.impactOccurred('medium');
-            }
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
-            // Прячем главную страницу и показываем сканер
             document.getElementById('main-screen').style.display = 'none';
             document.getElementById('scanner-wrapper').style.display = 'block';
 
-            // Инициализация библиотеки "с нуля"
             html5QrCode = new Html5Qrcode("reader");
 
-            // Конфиг без кривых ratios, просто читаем код
-            const config = { 
-                fps: 20, // Оптимальная частота кадров для стабильности
-                qrbox: { width: 250, height: 250 } // Должно совпадать с нашей рамкой
+            const qrConfig = {
+                fps: 20,
+                // Увеличиваем зону поиска для плотных кодов
+                qrbox: (viewfinderWidth, viewfinderHeight) => {
+                    let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                    let size = Math.floor(minEdge * 0.75);
+                    return { width: size, height: size };
+                },
+                aspectRatio: 1.0,
+                // Улучшенная обработка для сложных QR
+                experimentalFeatures: {
+                    useBarCodeDetectorIfSupported: true
+                }
             };
 
             html5QrCode.start(
-                { facingMode: "environment" }, 
-                config, 
+                { facingMode: "environment" },
+                qrConfig,
                 (decodedText) => {
-                    // Успешное считывание
-                    if (tg.HapticFeedback) {
-                        tg.HapticFeedback.notificationOccurred('success');
-                    }
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
                     
-                    // Останавливаем камеру ПЕРЕД переходом
+                    // Останавливаем камеру и переходим
                     html5QrCode.stop().then(() => {
                         window.location.href = decodedText;
                     }).catch(() => {
                         window.location.href = decodedText;
                     });
-                },
-                (errorMessage) => {
-                    // Ошибки каждого пустого кадра (это нормально, игнорируем)
                 }
-            ).catch((err) => {
-                console.error("Не удалось запустить камеру:", err);
-                // Если нет прав на камеру или сбой, возвращаем интерфейс обратно
-                document.getElementById('scanner-wrapper').style.display = 'none';
-                document.getElementById('main-screen').style.display = 'flex';
-                alert("Ошибка доступа к камере. Разрешите доступ и попробуйте снова.");
+            ).catch(err => {
+                console.error("Scanner Error:", err);
+                resetUI();
             });
+        }
+
+        function resetUI() {
+            document.getElementById('scanner-wrapper').style.display = 'none';
+            document.getElementById('main-screen').style.display = 'flex';
         }
     </script>
 </body>
