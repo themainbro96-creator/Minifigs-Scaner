@@ -1,67 +1,207 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TERMINAL - ASSET 02</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Асока Тано — Jedi Series</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; padding: 20px; line-height: 1.2; font-size: 14px; overflow: hidden; text-shadow: 0 0 5px #00ff41; }
-        .crt::before { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); z-index: 2; background-size: 100% 2px, 3px 100%; pointer-events: none; }
-        .hl { color: #fff; text-shadow: 0 0 10px #fff; }
-        .glitch { color: #ff3e3e; text-shadow: 0 0 5px #ff3e3e; font-weight: bold; }
-        .cursor { display: inline-block; width: 8px; height: 15px; background: #00ff41; animation: b 1s infinite; vertical-align: middle; }
-        @keyframes b { 50% { opacity: 0; } }
+        :root {
+            --ios-blue: #007AFF;
+            --ios-dark-card: rgba(28, 28, 30, 0.94);
+            --ios-border: rgba(255, 255, 255, 0.1);
+            --ios-secondary: #8E8E93;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #3C7FFB;
+            font-family: -apple-system, SF Pro Display, system-ui, sans-serif;
+            color: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .gallery-wrapper {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .gallery-container {
+            display: flex;
+            overflow-x: scroll;
+            scroll-snap-type: x mandatory;
+            width: 100%;
+            height: 100%;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .gallery-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .slide {
+            flex: 0 0 100%;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            scroll-snap-align: center;
+        }
+
+        .slide img {
+            max-width: 85%;
+            max-height: 75%;
+            object-fit: contain;
+            filter: drop-shadow(0 30px 50px rgba(0,0,0,0.4));
+        }
+
+        .pagination {
+            position: absolute;
+            bottom: 30px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 7px;
+            height: 7px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .dot.active {
+            background: white;
+            transform: scale(1.3);
+        }
+
+        .details-card {
+            background: var(--ios-dark-card);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border-top: 0.5px solid var(--ios-border);
+            border-radius: 32px 32px 0 0;
+            padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+            box-shadow: 0 -15px 40px rgba(0,0,0,0.3);
+        }
+
+        .header-section {
+            margin-bottom: 24px;
+        }
+
+        .header-section h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0 0 6px 0;
+            letter-spacing: -1px;
+        }
+
+        .rating-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+        }
+
+        .stars { color: #FFD60A; }
+        .reviews-text { color: var(--ios-secondary); font-weight: 400; }
+
+        .ios-list {
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .ios-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            border-bottom: 0.5px solid var(--ios-border);
+            font-size: 16px;
+        }
+
+        .ios-item:last-child { border-bottom: none; }
+        .label { color: var(--ios-secondary); font-weight: 400; }
+        .value { font-weight: 400; }
+        .blue-accent { color: var(--ios-blue); font-weight: 600; }
+
     </style>
 </head>
-<body class="crt">
-    <div id="out"></div><span class="cursor"></span>
-    <script>
-        const ID = "LF-237512-2", SER = "JEDI_01SERIES";
-        const chars = "#%~@₽&";
+<body>
+
+    <div class="gallery-wrapper">
+        <div class="gallery-container" id="slider">
+            <div class="slide"><img src="Pics/fig2/IMG_2087.webp" alt="Photo 1"></div>
+            <div class="slide"><img src="Pics/fig2/IMG_2088.webp" alt="Photo 2"></div>
+            <div class="slide"><img src="Pics/fig2/IMG_2089.webp" alt="Photo 3"></div>
+            <div class="slide"><img src="Pics/fig2/IMG_2090.webp" alt="Photo 4"></div>
+        </div>
         
-        const log = [
-            `[${new Date().toLocaleTimeString()}] RE-LINKING SYSTEM...`, 
-            "ESTABLISHING_UPLINK: OK", 
-            "ENCRYPTION_LAYER: 128-BIT", 
-            "---",
-            "GLITCH_1",
-            "SCANNING_SECTOR_7G...", 
-            "SEARCHING_FOR_SITH_PRESENCE: NONE",
-            "DECRYPTING_KYBER_SIGNATURE...", 
-            "---",
-            "GLITCH_2",
-            `ID: ${ID}`, 
-            `SERIES: ${SER}`, 
-            "STATUS: SECURED", 
-            "---", 
-            "CONNECTION_STABLE. IDLE."
-        ];
+        <div class="pagination" id="dots">
+            <div class="dot active"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+    </div>
 
-        function startGlitch(element) {
-            setInterval(() => {
-                let s = "";
-                for(let i=0; i<6; i++) s += chars[Math.floor(Math.random()*chars.length)];
-                element.innerHTML = `DATA_CORRUPTION: ${s}`;
-            }, 500);
-        }
+    <div class="details-card">
+        <div class="header-section">
+            <h1>Асока Тано</h1>
+            <div class="rating-row">
+                <span class="stars">★★★★★</span>
+                <span class="reviews-text">18 отзывов</span>
+            </div>
+        </div>
 
-        async function run() {
-            const o = document.getElementById('out');
-            for(let t of log) {
-                let d = document.createElement('div');
-                if(t.startsWith('GLITCH')) {
-                    d.className = 'glitch';
-                    o.appendChild(d);
-                    startGlitch(d);
-                } else {
-                    if(t.includes('ID:') || t.includes('SERIES:')) d.className = 'hl';
-                    d.innerHTML = t; 
-                    o.appendChild(d);
-                }
-                await new Promise(r => setTimeout(r, Math.random() * 800 + 400));
+        <div class="ios-list">
+            <div class="ios-item">
+                <span class="label">Артикул</span>
+                <span class="value">#LF-237512-02</span>
+            </div>
+            <div class="ios-item">
+                <span class="label">Серия</span>
+                <span class="value">Джедаи</span>
+            </div>
+            <div class="ios-item">
+                <span class="label">Доставка</span>
+                <span class="blue-accent">25 февраля</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+        tg.setHeaderColor('#3C7FFB');
+
+        const slider = document.getElementById('slider');
+        const dots = document.querySelectorAll('.dot');
+        let currentIdx = 0;
+
+        slider.addEventListener('scroll', () => {
+            const index = Math.round(slider.scrollLeft / window.innerWidth);
+            if (index !== currentIdx) {
+                currentIdx = index;
+                if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+                dots.forEach((dot, i) => {
+                    dot.classList.toggle('active', i === currentIdx);
+                });
             }
-        }
-        run();
+        });
     </script>
 </body>
 </html>
