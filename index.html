@@ -50,20 +50,20 @@
         p { font-size: 16px; opacity: 0.6; max-width: 280px; line-height: 1.4; margin: 0 0 40px; }
 
         /* Контейнер для кнопок */
-        .buttons-container {
+        .button-group {
             display: flex;
             gap: 12px;
-            width: 280px;
             align-items: center;
+            width: 280px;
         }
 
         .btn-main {
-            flex: 1; /* Занимает всё свободное место */
+            flex: 1; /* Занимает основное место */
             background-color: var(--tg-theme-button-color);
             color: var(--tg-theme-button-text-color);
             border: none;
             padding: 16px 0;
-            border-radius: 16px;
+            border-radius: 14px;
             font-size: 17px;
             font-weight: 600;
             cursor: pointer;
@@ -73,21 +73,21 @@
         .btn-gallery {
             width: 54px;
             height: 54px;
-            background-color: rgba(0, 122, 255, 0.1); /* Светло-голубой фон */
+            background-color: var(--tg-theme-button-color);
             border: none;
-            border-radius: 16px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            padding: 0;
+            flex-shrink: 0;
+            transition: opacity 0.2s;
         }
 
         .btn-gallery img {
-            width: 26px;
-            height: 26px;
-            /* Делаем иконку синей в тон кнопке */
-            filter: invert(34%) sepia(85%) saturate(2443%) hue-rotate(201deg) brightness(101%) contrast(105%);
+            width: 24px;
+            height: 24px;
+            filter: brightness(0) invert(1); /* Делает черную иконку белой */
         }
 
         .btn-main:active, .btn-gallery:active {
@@ -141,6 +141,8 @@
             text-align: center;
             text-shadow: 0 2px 4px rgba(0,0,0,0.8);
         }
+
+        #file-input { display: none; }
     </style>
 </head>
 <body>
@@ -150,12 +152,13 @@
         <h1>Отсканируй код</h1>
         <p>На обратной стороне твоего подарочного пакетика есть QR-код. Отсканируй его!</p>
         
-        <div class="buttons-container">
+        <div class="button-group">
             <button class="btn-main" onclick="startScanner()">Сканировать</button>
-            <button class="btn-gallery" onclick="openGallery()">
+            <button class="btn-gallery" onclick="document.getElementById('file-input').click()">
                 <img src="https://cdn-icons-png.flaticon.com/512/3342/3342176.png" alt="Gallery">
             </button>
         </div>
+        <input type="file" id="file-input" accept="image/*" onchange="scanFromFile(event)">
     </div>
 
     <div id="scanner-wrapper">
@@ -183,9 +186,9 @@
             stopScanner();
         });
 
+        // 1. Скан с камеры
         async function startScanner() {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-
             document.getElementById('main-screen').style.display = 'none';
             document.getElementById('scanner-wrapper').style.display = 'block';
             tg.BackButton.show();
@@ -200,7 +203,7 @@
                 scanning = true;
                 requestAnimationFrame(tick);
             } catch (err) {
-                alert("Ошибка доступа к камере.");
+                alert("Ошибка камеры.");
                 stopScanner();
             }
         }
@@ -216,33 +219,54 @@
             document.getElementById('main-screen').style.display = 'flex';
         }
 
-        function openGallery() {
-            if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
-            // Здесь можно добавить логику выбора фото через Telegram API, если потребуется
-            alert("Функция выбора из галереи будет доступна в следующем обновлении!");
-        }
-
         function tick() {
             if (video.readyState === video.HAVE_ENOUGH_DATA && scanning) {
                 canvas.height = video.videoHeight;
                 canvas.width = video.videoWidth;
                 context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                
                 const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                    inversionAttempts: "dontInvert",
-                });
+                const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
 
                 if (code) {
-                    scanning = false;
-                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                    tg.BackButton.hide();
-                    video.srcObject.getTracks().forEach(track => track.stop());
-                    window.location.href = code.data;
+                    processResult(code.data);
                     return;
                 }
             }
             if (scanning) requestAnimationFrame(tick);
+        }
+
+        // 2. Скан из файла (галерея)
+        function scanFromFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    context.drawImage(img, 0, 0);
+                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height);
+                    
+                    if (code) {
+                        processResult(code.data);
+                    } else {
+                        alert("QR-код на фото не найден. Попробуйте другое фото.");
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function processResult(url) {
+            scanning = false;
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            tg.BackButton.hide();
+            if (video.srcObject) video.srcObject.getTracks().forEach(track => track.stop());
+            window.location.href = url;
         }
     </script>
 </body>
