@@ -27,14 +27,12 @@
             overflow: hidden;
         }
 
-        /* Начальный экран */
         #main-screen {
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
             padding: 20px;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .holder-img {
@@ -42,12 +40,8 @@
             height: auto;
             opacity: 0.75;
             margin-bottom: 30px;
-            /* Убедись, что имя файла в папке Pics точно совпадает с этим (включая регистр PNG) */
             content: url('Pics/BlackHolder.PNG'); 
         }
-
-        h1 { font-size: 24px; font-weight: 600; margin: 0 0 10px; }
-        p { font-size: 16px; opacity: 0.6; max-width: 280px; line-height: 1.4; margin: 0 0 40px; }
 
         .btn-main {
             background-color: var(--tg-theme-button-color);
@@ -58,11 +52,8 @@
             font-size: 17px;
             font-weight: 600;
             width: 280px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
-        /* Контейнер сканера */
         #scanner-wrapper {
             display: none;
             position: fixed;
@@ -73,39 +64,53 @@
 
         #reader { width: 100%; height: 100%; }
 
-        /* Оверлей сканера */
         .scan-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
             pointer-events: none;
         }
 
-        /* Чистая рамка (iOS style) */
+        /* Контейнер рамки */
         .reticle {
             width: 260px;
             height: 260px;
             position: relative;
-            /* Создаем эффект "дырки" в центре */
             box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.7);
-            /* Белая рамка с закруглением */
-            border: 4px solid #fff;
-            border-radius: 40px;
-            box-sizing: border-box; /* Чтобы рамка была внутри размеров */
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Для анимации сужения */
         }
 
+        /* Анимация при захвате */
+        .reticle.active {
+            width: 150px;
+            height: 150px;
+            opacity: 0.5;
+        }
+
+        /* Отрисовка углов */
+        .corner {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #fff;
+            transition: all 0.3s ease;
+        }
+
+        .tl { top: 0; left: 0; border-right: 0; border-bottom: 0; border-top-left-radius: 25px; }
+        .tr { top: 0; right: 0; border-left: 0; border-bottom: 0; border-top-right-radius: 25px; }
+        .bl { bottom: 0; left: 0; border-right: 0; border-top: 0; border-bottom-left-radius: 25px; }
+        .br { bottom: 0; right: 0; border-left: 0; border-top: 0; border-bottom-right-radius: 25px; }
+
         .scan-hint {
+            position: absolute;
+            bottom: 15%;
             color: #fff;
-            margin-top: 40px;
             font-size: 15px;
-            letter-spacing: 0.5px;
             text-shadow: 0 2px 4px rgba(0,0,0,0.5);
         }
 
-        /* Кнопка закрытия */
         .close-btn {
             position: absolute;
             top: 50px;
@@ -116,8 +121,7 @@
             padding: 8px 16px;
             border-radius: 20px;
             backdrop-filter: blur(10px);
-            font-size: 14px;
-            pointer-events: all; /* Чтобы кнопка нажималась */
+            pointer-events: all;
         }
     </style>
 </head>
@@ -133,8 +137,13 @@
     <div id="scanner-wrapper">
         <div id="reader"></div>
         <div class="scan-overlay">
-            <div class="reticle"></div>
-            <div class="scan-hint">Помести код в квадрат</div>
+            <div id="reticle" class="reticle">
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+            </div>
+            <div class="scan-hint">Помести код в центр</div>
         </div>
         <button class="close-btn" onclick="stopScanner()">Закрыть</button>
     </div>
@@ -147,31 +156,25 @@
 
         function initScanner() {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-
             document.getElementById('main-screen').style.display = 'none';
             document.getElementById('scanner-wrapper').style.display = 'block';
 
             scanner = new Html5Qrcode("reader");
-            
-            // Настраиваем зону сканирования чуть меньше рамки для точности
-            const config = { 
-                fps: 20, 
-                qrbox: { width: 240, height: 240 },
-                aspectRatio: 1.0
-            };
+            const config = { fps: 25, qrbox: { width: 250, height: 250 } };
 
-            scanner.start(
-                { facingMode: "environment" }, 
-                config, 
-                (decodedText) => {
-                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                    stopScanner(); // Останавливаем камеру перед переходом
+            scanner.start({ facingMode: "environment" }, config, (decodedText) => {
+                // Эффект захвата
+                const reticle = document.getElementById('reticle');
+                reticle.classList.add('active');
+                
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+
+                // Небольшая пауза для анимации перед переходом
+                setTimeout(() => {
                     window.location.href = decodedText;
-                }
-            ).catch(err => {
-                console.error("Ошибка камеры:", err);
-                // Можно показать алерт, если камера не запустилась
-                // alert("Не удалось запустить камеру. Проверьте разрешения.");
+                }, 300);
+            }).catch(err => {
+                console.error(err);
                 stopScanner();
             });
         }
@@ -181,16 +184,8 @@
                 scanner.stop().then(() => {
                     document.getElementById('scanner-wrapper').style.display = 'none';
                     document.getElementById('main-screen').style.display = 'flex';
-                    scanner = null;
-                }).catch(err => {
-                    console.error("Ошибка остановки сканера:", err);
-                    // В любом случае скрываем интерфейс
-                    document.getElementById('scanner-wrapper').style.display = 'none';
-                    document.getElementById('main-screen').style.display = 'flex';
+                    document.getElementById('reticle').classList.remove('active');
                 });
-            } else {
-                document.getElementById('scanner-wrapper').style.display = 'none';
-                document.getElementById('main-screen').style.display = 'flex';
             }
         }
     </script>
