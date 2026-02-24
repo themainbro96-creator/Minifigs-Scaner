@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Jedi Scanner</title>
+    <title>Jedi Scanner Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         :root {
             --tg-theme-bg-color: #fff;
@@ -54,62 +54,61 @@
             width: 280px;
         }
 
-        #scanner-wrapper {
+        /* Сканер */
+        #scanner-container {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background: #000;
-            z-index: 1000;
         }
 
-        #reader { width: 100%; height: 100%; }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
 
-        .scan-overlay {
+        canvas {
+            display: none;
+        }
+
+        .overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
             display: flex;
             justify-content: center;
             align-items: center;
-            pointer-events: none;
         }
 
-        /* Контейнер рамки */
+        /* Анимированная рамка (только углы) */
         .reticle {
             width: 260px;
             height: 260px;
             position: relative;
-            box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.7);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Для анимации сужения */
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.6);
         }
 
-        /* Анимация при захвате */
+        /* Состояние при сканировании (сужение) */
         .reticle.active {
-            width: 150px;
-            height: 150px;
-            opacity: 0.5;
+            width: 180px;
+            height: 180px;
+            border-radius: 20px;
         }
 
-        /* Отрисовка углов */
         .corner {
             position: absolute;
-            width: 40px;
-            height: 40px;
+            width: 30px;
+            height: 30px;
             border: 4px solid #fff;
-            transition: all 0.3s ease;
+            border-radius: 10px;
         }
 
-        .tl { top: 0; left: 0; border-right: 0; border-bottom: 0; border-top-left-radius: 25px; }
-        .tr { top: 0; right: 0; border-left: 0; border-bottom: 0; border-top-right-radius: 25px; }
-        .bl { bottom: 0; left: 0; border-right: 0; border-top: 0; border-bottom-left-radius: 25px; }
-        .br { bottom: 0; right: 0; border-left: 0; border-top: 0; border-bottom-right-radius: 25px; }
-
-        .scan-hint {
-            position: absolute;
-            bottom: 15%;
-            color: #fff;
-            font-size: 15px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-        }
+        .tl { top: 0; left: 0; border-right: 0; border-bottom: 0; border-top-left-radius: 20px; }
+        .tr { top: 0; right: 0; border-left: 0; border-bottom: 0; border-top-right-radius: 20px; }
+        .bl { bottom: 0; left: 0; border-right: 0; border-top: 0; border-bottom-left-radius: 20px; }
+        .br { bottom: 0; right: 0; border-left: 0; border-top: 0; border-bottom-right-radius: 20px; }
 
         .close-btn {
             position: absolute;
@@ -130,20 +129,19 @@
     <div id="main-screen">
         <div class="holder-img"></div>
         <h1>Отсканируй код</h1>
-        <p>На обратной стороне твоего подарочного пакетика есть QR-код. Отсканируй его!</p>
-        <button class="btn-main" onclick="initScanner()">Сканировать</button>
+        <button class="btn-main" onclick="startScanner()">Сканировать</button>
     </div>
 
-    <div id="scanner-wrapper">
-        <div id="reader"></div>
-        <div class="scan-overlay">
+    <div id="scanner-container">
+        <video id="video" playsinline></video>
+        <canvas id="canvas"></canvas>
+        <div class="overlay">
             <div id="reticle" class="reticle">
                 <div class="corner tl"></div>
                 <div class="corner tr"></div>
                 <div class="corner bl"></div>
                 <div class="corner br"></div>
             </div>
-            <div class="scan-hint">Помести код в центр</div>
         </div>
         <button class="close-btn" onclick="stopScanner()">Закрыть</button>
     </div>
@@ -152,41 +150,73 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        let scanner = null;
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const reticle = document.getElementById('reticle');
+        let stream = null;
+        let isScanning = false;
 
-        function initScanner() {
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-            document.getElementById('main-screen').style.display = 'none';
-            document.getElementById('scanner-wrapper').style.display = 'block';
-
-            scanner = new Html5Qrcode("reader");
-            const config = { fps: 25, qrbox: { width: 250, height: 250 } };
-
-            scanner.start({ facingMode: "environment" }, config, (decodedText) => {
-                // Эффект захвата
-                const reticle = document.getElementById('reticle');
-                reticle.classList.add('active');
+        async function startScanner() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                video.srcObject = stream;
+                video.setAttribute("playsinline", true);
+                video.play();
                 
-                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                document.getElementById('main-screen').style.display = 'none';
+                document.getElementById('scanner-container').style.display = 'block';
+                
+                isScanning = true;
+                requestAnimationFrame(tick);
+            } catch (err) {
+                alert("Ошибка доступа к камере: " + err);
+            }
+        }
 
-                // Небольшая пауза для анимации перед переходом
-                setTimeout(() => {
-                    window.location.href = decodedText;
-                }, 300);
-            }).catch(err => {
-                console.error(err);
-                stopScanner();
-            });
+        function tick() {
+            if (!isScanning) return;
+
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvas.height = video.videoHeight;
+                canvas.width = video.videoWidth;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert",
+                });
+
+                if (code) {
+                    onSuccess(code.data);
+                    return; // Прекращаем цикл при успехе
+                }
+            }
+            requestAnimationFrame(tick);
+        }
+
+        function onSuccess(data) {
+            isScanning = false;
+            
+            // Вибрация
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            
+            // Эффект сужения рамки
+            reticle.classList.add('active');
+            
+            setTimeout(() => {
+                window.location.href = data;
+            }, 400); // Задержка, чтобы увидеть анимацию
         }
 
         function stopScanner() {
-            if (scanner) {
-                scanner.stop().then(() => {
-                    document.getElementById('scanner-wrapper').style.display = 'none';
-                    document.getElementById('main-screen').style.display = 'flex';
-                    document.getElementById('reticle').classList.remove('active');
-                });
+            isScanning = false;
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
             }
+            document.getElementById('scanner-container').style.display = 'none';
+            document.getElementById('main-screen').style.display = 'flex';
+            reticle.classList.remove('active');
         }
     </script>
 </body>
