@@ -25,7 +25,9 @@
             flex-direction: column;
         }
 
-        /* Главная страница — без изменений */
+        /* =========================================
+           ГЛАВНЫЙ ЭКРАН (СОХРАНЕН БЕЗ ИЗМЕНЕНИЙ)
+           ========================================= */
         #main-screen {
             flex: 1;
             display: flex;
@@ -34,7 +36,6 @@
             justify-content: center;
             text-align: center;
             padding: 20px;
-            transition: opacity 0.3s ease;
         }
 
         .holder-img {
@@ -60,38 +61,77 @@
             cursor: pointer;
         }
 
-        /* Контейнер сканера */
+        /* =========================================
+           НОВЫЙ ЧИСТЫЙ ЭКРАН СКАНЕРА
+           ========================================= */
         #scanner-wrapper {
-            display: none;
+            display: none; /* Скрыт до нажатия кнопки */
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #000;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #000;
             z-index: 1000;
         }
 
+        /* Блок, куда библиотека кладет видео */
         #reader {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* Жестко заставляем видео заполнять весь экран без искажений пропорций */
+        #reader video {
             width: 100% !important;
             height: 100% !important;
+            object-fit: cover !important; 
         }
 
-        /* Стилизация стандартной рамки библиотеки */
-        #reader__scan_region div {
-            border-radius: 30px !important; /* Скругляем углы стандартного квадрата */
-            border-width: 4px !important;
+        /* УБИВАЕМ родной кривой интерфейс библиотеки */
+        #reader__scan_region, 
+        #reader__dashboard_section_csr,
+        #reader__dashboard_section_swaplink {
+            display: none !important;
         }
 
-        .close-btn {
+        /* НАШ ИДЕАЛЬНЫЙ ОВЕРЛЕЙ (рисуется поверх видео) */
+        #custom-overlay {
             position: absolute;
-            top: 50px;
-            right: 20px;
-            background: rgba(255,255,255,0.2);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none; /* Чтобы не мешал кликам (если понадобятся) */
+        }
+
+        /* Красивый и ровный квадрат */
+        .scan-frame {
+            width: 250px;
+            height: 250px;
+            border: 4px solid #fff;
+            border-radius: 30px;
+            position: relative;
+            /* Именно эта огромная тень создает затемнение всего остального экрана */
+            box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.65);
+            box-sizing: border-box;
+        }
+
+        /* Текст-подсказка под квадратом */
+        .scan-text {
+            position: absolute;
+            bottom: -50px;
+            left: 0;
+            width: 100%;
             color: #fff;
-            border: none;
-            padding: 8px 18px;
-            border-radius: 20px;
-            backdrop-filter: blur(10px);
-            z-index: 1001;
-            font-size: 14px;
+            font-size: 15px;
+            font-weight: 500;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
         }
     </style>
 </head>
@@ -101,12 +141,17 @@
         <div class="holder-img"></div>
         <h1>Отсканируй код</h1>
         <p>На обратной стороне твоего подарочного пакетика есть QR-код. Отсканируй его!</p>
-        <button class="btn-main" onclick="initScanner()">Сканировать</button>
+        <button class="btn-main" onclick="startScanner()">Сканировать</button>
     </div>
 
     <div id="scanner-wrapper">
         <div id="reader"></div>
-        <button class="close-btn" onclick="stopScanner()">Закрыть</button>
+        
+        <div id="custom-overlay">
+            <div class="scan-frame">
+                <div class="scan-text">Помести код в квадрат</div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -115,58 +160,51 @@
 
         let html5QrCode = null;
 
-        function initScanner() {
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-
-            document.getElementById('main-screen').style.opacity = '0';
-            
-            setTimeout(() => {
-                document.getElementById('main-screen').style.display = 'none';
-                document.getElementById('scanner-wrapper').style.display = 'block';
-
-                html5QrCode = new Html5Qrcode("reader");
-                
-                // Рассчитываем размер квадрата: 70% от меньшей стороны экрана
-                const qrBoxSize = (viewfinderWidth, viewfinderHeight) => {
-                    let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                    let size = Math.floor(minEdge * 0.7);
-                    return { width: size, height: size };
-                };
-
-                html5QrCode.start(
-                    { facingMode: "environment" }, 
-                    { 
-                        fps: 20, 
-                        qrbox: qrBoxSize,
-                        aspectRatio: 1.0 
-                    }, 
-                    (decodedText) => {
-                        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                        // Сразу переходим по ссылке
-                        window.location.href = decodedText;
-                    }
-                ).catch(err => {
-                    console.error("Scanner error:", err);
-                    stopScanner();
-                });
-            }, 350);
-        }
-
-        function stopScanner() {
-            if (html5QrCode) {
-                html5QrCode.stop().then(() => {
-                    html5QrCode.clear();
-                    resetUI();
-                }).catch(() => resetUI());
-            } else {
-                resetUI();
+        function startScanner() {
+            // Легкая вибрация при старте (если поддерживается)
+            if (tg.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('medium');
             }
-        }
 
-        function resetUI() {
-            document.getElementById('scanner-wrapper').style.display = 'none';
-            document.getElementById('main-screen').style.display = 'flex';
-            document.getElementById('main-screen').style.opacity = '1';
+            // Прячем главную страницу и показываем сканер
+            document.getElementById('main-screen').style.display = 'none';
+            document.getElementById('scanner-wrapper').style.display = 'block';
+
+            // Инициализация библиотеки "с нуля"
+            html5QrCode = new Html5Qrcode("reader");
+
+            // Конфиг без кривых ratios, просто читаем код
+            const config = { 
+                fps: 20, // Оптимальная частота кадров для стабильности
+                qrbox: { width: 250, height: 250 } // Должно совпадать с нашей рамкой
+            };
+
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                config, 
+                (decodedText) => {
+                    // Успешное считывание
+                    if (tg.HapticFeedback) {
+                        tg.HapticFeedback.notificationOccurred('success');
+                    }
+                    
+                    // Останавливаем камеру ПЕРЕД переходом
+                    html5QrCode.stop().then(() => {
+                        window.location.href = decodedText;
+                    }).catch(() => {
+                        window.location.href = decodedText;
+                    });
+                },
+                (errorMessage) => {
+                    // Ошибки каждого пустого кадра (это нормально, игнорируем)
+                }
+            ).catch((err) => {
+                console.error("Не удалось запустить камеру:", err);
+                // Если нет прав на камеру или сбой, возвращаем интерфейс обратно
+                document.getElementById('scanner-wrapper').style.display = 'none';
+                document.getElementById('main-screen').style.display = 'flex';
+                alert("Ошибка доступа к камере. Разрешите доступ и попробуйте снова.");
+            });
         }
     </script>
 </body>
