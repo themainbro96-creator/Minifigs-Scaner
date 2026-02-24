@@ -9,15 +9,13 @@
     <style>
         :root {
             --tg-theme-bg-color: #fff;
-            --tg-theme-text-color: #000;
-            --tg-theme-button-color: #007aff;
+            --tg-theme-button-color: #3C7FFB;
             --tg-theme-button-text-color: #fff;
         }
 
         body {
-            font-family: -apple-system, SF Pro Display, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--tg-theme-bg-color);
-            color: var(--tg-theme-text-color);
             margin: 0;
             height: 100vh;
             overflow: hidden;
@@ -31,24 +29,23 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            text-align: center;
             padding: 20px;
+            text-align: center;
         }
 
         .holder-img {
-            width: 200px;
-            height: auto;
-            content: url('Pics/BlackHolder.PNG'); 
+            width: 220px;
             margin-bottom: 30px;
+            content: url('Pics/BlackHolder.PNG');
         }
 
         .btn-main {
             background-color: var(--tg-theme-button-color);
             color: var(--tg-theme-button-text-color);
             border: none;
-            padding: 16px 32px;
-            border-radius: 14px;
-            font-size: 17px;
+            padding: 18px 32px;
+            border-radius: 16px;
+            font-size: 18px;
             font-weight: 600;
             width: 280px;
             cursor: pointer;
@@ -68,20 +65,31 @@
             height: 100% !important;
         }
 
-        /* УБИРАЕМ ВСЕ ЛИШНИЕ КВАДРАТЫ И ОСТАВЛЯЕМ ТОЛЬКО ОДИН РОДНОЙ */
+        /* ХАК ДЛЯ СТИЛИЗАЦИИ РАМКИ БИБЛИОТЕКИ (iOS STYLE) */
         #reader__scan_region {
-            border: none !important;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        #reader__scan_region div {
-            border: 3px solid #007AFF !important; /* Делаем рамку синей в стиле iOS */
-            border-radius: 30px !important;
-            box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.6) !important;
+        /* Делаем стандартную рамку белой, квадратной и с нашими углами */
+        #reader__scan_region div[style*="border"] {
+            border: 4px solid #fff !important;
+            border-radius: 40px !important;
+            box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.6) !important; /* Затемнение вокруг */
+            width: 260px !important;
+            height: 260px !important;
         }
 
-        /* Убираем кнопку "Stop Scanning" от библиотеки */
-        #reader__dashboard_section_csr button {
+        /* Убираем лишние кнопки и текст библиотеки */
+        #reader__dashboard_section_csr, 
+        #reader__dashboard_section_swaplink, 
+        #reader__status_span {
             display: none !important;
+        }
+
+        video {
+            object-fit: cover !important;
         }
     </style>
 </head>
@@ -90,7 +98,7 @@
     <div id="main-screen">
         <div class="holder-img"></div>
         <h1>Отсканируй код</h1>
-        <p>Помести QR-код с пакетика в рамку</p>
+        <p style="opacity: 0.6; margin-bottom: 40px;">Наведи камеру на QR-код на пакетике</p>
         <button class="btn-main" onclick="startScanner()">Сканировать</button>
     </div>
 
@@ -112,28 +120,22 @@
 
             html5QrCode = new Html5Qrcode("reader");
 
-            const qrConfig = {
-                fps: 20,
-                // Увеличиваем зону поиска для плотных кодов
-                qrbox: (viewfinderWidth, viewfinderHeight) => {
-                    let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                    let size = Math.floor(minEdge * 0.75);
-                    return { width: size, height: size };
-                },
+            const config = { 
+                fps: 25, 
+                qrbox: { width: 260, height: 260 }, // Строго квадратная область
                 aspectRatio: 1.0,
-                // Улучшенная обработка для сложных QR
                 experimentalFeatures: {
-                    useBarCodeDetectorIfSupported: true
+                    useBarCodeDetectorIfSupported: true // Ускоряет скан на новых iOS
                 }
             };
 
             html5QrCode.start(
-                { facingMode: "environment" },
-                qrConfig,
+                { facingMode: "environment" }, 
+                config, 
                 (decodedText) => {
+                    // Успех! Вибрируем и переходим
                     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
                     
-                    // Останавливаем камеру и переходим
                     html5QrCode.stop().then(() => {
                         window.location.href = decodedText;
                     }).catch(() => {
@@ -141,7 +143,8 @@
                     });
                 }
             ).catch(err => {
-                console.error("Scanner Error:", err);
+                console.error("Camera error:", err);
+                alert("Ошибка камеры. Проверьте разрешения.");
                 resetUI();
             });
         }
