@@ -26,7 +26,7 @@
         }
 
         /* =========================================
-           ГЛАВНЫЙ ЭКРАН (БЕЗ ИЗМЕНЕНИЙ)
+           ГЛАВНЫЙ ЭКРАН
            ========================================= */
         #main-screen {
             flex: 1;
@@ -49,20 +49,53 @@
         h1 { font-size: 24px; font-weight: 600; margin: 0 0 10px; }
         p { font-size: 16px; opacity: 0.6; max-width: 280px; line-height: 1.4; margin: 0 0 40px; }
 
+        /* Контейнер для кнопок */
+        .buttons-container {
+            display: flex;
+            gap: 12px;
+            width: 280px;
+            align-items: center;
+        }
+
         .btn-main {
+            flex: 1; /* Занимает всё свободное место */
             background-color: var(--tg-theme-button-color);
             color: var(--tg-theme-button-text-color);
             border: none;
-            padding: 16px 32px;
-            border-radius: 14px;
+            padding: 16px 0;
+            border-radius: 16px;
             font-size: 17px;
             font-weight: 600;
-            width: 280px;
             cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn-gallery {
+            width: 54px;
+            height: 54px;
+            background-color: rgba(0, 122, 255, 0.1); /* Светло-голубой фон */
+            border: none;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .btn-gallery img {
+            width: 26px;
+            height: 26px;
+            /* Делаем иконку синей в тон кнопке */
+            filter: invert(34%) sepia(85%) saturate(2443%) hue-rotate(201deg) brightness(101%) contrast(105%);
+        }
+
+        .btn-main:active, .btn-gallery:active {
+            opacity: 0.7;
         }
 
         /* =========================================
-           ЭКРАН СКАНЕРА (ЧИСТЫЙ)
+           ЭКРАН СКАНЕРА
            ========================================= */
         #scanner-wrapper {
             display: none;
@@ -116,7 +149,13 @@
         <div class="holder-img"></div>
         <h1>Отсканируй код</h1>
         <p>На обратной стороне твоего подарочного пакетика есть QR-код. Отсканируй его!</p>
-        <button class="btn-main" onclick="startScanner()">Сканировать</button>
+        
+        <div class="buttons-container">
+            <button class="btn-main" onclick="startScanner()">Сканировать</button>
+            <button class="btn-gallery" onclick="openGallery()">
+                <img src="https://cdn-icons-png.flaticon.com/512/3342/3342176.png" alt="Gallery">
+            </button>
+        </div>
     </div>
 
     <div id="scanner-wrapper">
@@ -139,29 +178,21 @@
         const context = canvas.getContext('2d', { willReadFrequently: true });
         let scanning = false;
 
-        // Настройка кнопки Back
+        // Кнопка Back в Telegram
         tg.BackButton.onClick(() => {
             stopScanner();
         });
 
         async function startScanner() {
-            if (tg.HapticFeedback) {
-                tg.HapticFeedback.impactOccurred('medium');
-            }
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
             document.getElementById('main-screen').style.display = 'none';
             document.getElementById('scanner-wrapper').style.display = 'block';
-            
-            // ПОКАЗЫВАЕМ кнопку "Назад" вместо "Закрыть"
             tg.BackButton.show();
 
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { 
-                        facingMode: "environment",
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    } 
+                    video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } 
                 });
                 video.srcObject = stream;
                 video.setAttribute("playsinline", true);
@@ -176,17 +207,19 @@
 
         function stopScanner() {
             scanning = false;
-            
-            // ПРЯЧЕМ кнопку "Назад" (возвращается "Закрыть")
             tg.BackButton.hide();
-
             if (video.srcObject) {
                 video.srcObject.getTracks().forEach(track => track.stop());
                 video.srcObject = null;
             }
-            
             document.getElementById('scanner-wrapper').style.display = 'none';
             document.getElementById('main-screen').style.display = 'flex';
+        }
+
+        function openGallery() {
+            if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+            // Здесь можно добавить логику выбора фото через Telegram API, если потребуется
+            alert("Функция выбора из галереи будет доступна в следующем обновлении!");
         }
 
         function tick() {
@@ -202,13 +235,8 @@
 
                 if (code) {
                     scanning = false;
-                    if (tg.HapticFeedback) {
-                        tg.HapticFeedback.notificationOccurred('success');
-                    }
-                    
-                    // Убираем кнопку назад перед переходом
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
                     tg.BackButton.hide();
-                    
                     video.srcObject.getTracks().forEach(track => track.stop());
                     window.location.href = code.data;
                     return;
