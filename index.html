@@ -42,7 +42,7 @@
             height: auto;
             opacity: 0.75;
             margin-bottom: 30px;
-            /* Исправлено под твой регистр в GitHub */
+            /* Убедись, что имя файла в папке Pics точно совпадает с этим (включая регистр PNG) */
             content: url('Pics/BlackHolder.PNG'); 
         }
 
@@ -84,31 +84,18 @@
             pointer-events: none;
         }
 
-        /* Та самая рамка */
+        /* Чистая рамка (iOS style) */
         .reticle {
             width: 260px;
             height: 260px;
             position: relative;
             /* Создаем эффект "дырки" в центре */
             box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.7);
+            /* Белая рамка с закруглением */
+            border: 4px solid #fff;
             border-radius: 40px;
+            box-sizing: border-box; /* Чтобы рамка была внутри размеров */
         }
-
-        .reticle::before, .reticle::after, .reticle .inner-c::before, .reticle .inner-c::after {
-            content: "";
-            position: absolute;
-            width: 50px;
-            height: 50px;
-            border-color: #fff;
-            border-style: solid;
-            border-width: 0;
-        }
-
-        /* Рисуем ровные уголки */
-        .reticle::before { top: 0; left: 0; border-top-width: 4px; border-left-width: 4px; border-top-left-radius: 30px; }
-        .reticle::after { top: 0; right: 0; border-top-width: 4px; border-right-width: 4px; border-top-right-radius: 30px; }
-        .inner-c::before { bottom: 0; left: 0; border-bottom-width: 4px; border-left-width: 4px; border-bottom-left-radius: 30px; }
-        .inner-c::after { bottom: 0; right: 0; border-bottom-width: 4px; border-right-width: 4px; border-bottom-right-radius: 30px; }
 
         .scan-hint {
             color: #fff;
@@ -130,6 +117,7 @@
             border-radius: 20px;
             backdrop-filter: blur(10px);
             font-size: 14px;
+            pointer-events: all; /* Чтобы кнопка нажималась */
         }
     </style>
 </head>
@@ -145,9 +133,7 @@
     <div id="scanner-wrapper">
         <div id="reader"></div>
         <div class="scan-overlay">
-            <div class="reticle">
-                <div class="inner-c" style="width:100%; height:100%; position:relative;"></div>
-            </div>
+            <div class="reticle"></div>
             <div class="scan-hint">Помести код в квадрат</div>
         </div>
         <button class="close-btn" onclick="stopScanner()">Закрыть</button>
@@ -167,9 +153,10 @@
 
             scanner = new Html5Qrcode("reader");
             
+            // Настраиваем зону сканирования чуть меньше рамки для точности
             const config = { 
                 fps: 20, 
-                qrbox: { width: 260, height: 260 },
+                qrbox: { width: 240, height: 240 },
                 aspectRatio: 1.0
             };
 
@@ -178,11 +165,13 @@
                 config, 
                 (decodedText) => {
                     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                    // Автоматический переход при наведении
+                    stopScanner(); // Останавливаем камеру перед переходом
                     window.location.href = decodedText;
                 }
             ).catch(err => {
-                alert("Ошибка камеры: " + err);
+                console.error("Ошибка камеры:", err);
+                // Можно показать алерт, если камера не запустилась
+                // alert("Не удалось запустить камеру. Проверьте разрешения.");
                 stopScanner();
             });
         }
@@ -192,7 +181,16 @@
                 scanner.stop().then(() => {
                     document.getElementById('scanner-wrapper').style.display = 'none';
                     document.getElementById('main-screen').style.display = 'flex';
+                    scanner = null;
+                }).catch(err => {
+                    console.error("Ошибка остановки сканера:", err);
+                    // В любом случае скрываем интерфейс
+                    document.getElementById('scanner-wrapper').style.display = 'none';
+                    document.getElementById('main-screen').style.display = 'flex';
                 });
+            } else {
+                document.getElementById('scanner-wrapper').style.display = 'none';
+                document.getElementById('main-screen').style.display = 'flex';
             }
         }
     </script>
