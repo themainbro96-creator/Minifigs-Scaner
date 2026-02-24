@@ -26,7 +26,7 @@
         }
 
         /* =========================================
-           ГЛАВНЫЙ ЭКРАН (ВОССТАНОВЛЕН ПОЛНОСТЬЮ)
+           ГЛАВНЫЙ ЭКРАН (БЕЗ ИЗМЕНЕНИЙ)
            ========================================= */
         #main-screen {
             flex: 1;
@@ -62,7 +62,7 @@
         }
 
         /* =========================================
-           ЭКРАН СКАНЕРА (БЕЗ ЛИШНИХ РАМОК)
+           ЭКРАН СКАНЕРА (ЧИСТЫЙ)
            ========================================= */
         #scanner-wrapper {
             display: none;
@@ -89,14 +89,13 @@
             pointer-events: none;
         }
 
-        /* ВООБЩЕ НЕВИДИМЫЙ КВАДРАТ */
         .scan-frame {
             width: 250px;
             height: 250px;
-            border: none !important; /* Полная невидимость */
+            border: none !important;
             border-radius: 30px;
             position: relative;
-            box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.65); /* Затемнение вокруг */
+            box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.65);
         }
 
         .scan-text {
@@ -140,6 +139,11 @@
         const context = canvas.getContext('2d', { willReadFrequently: true });
         let scanning = false;
 
+        // Настройка кнопки Back
+        tg.BackButton.onClick(() => {
+            stopScanner();
+        });
+
         async function startScanner() {
             if (tg.HapticFeedback) {
                 tg.HapticFeedback.impactOccurred('medium');
@@ -147,6 +151,9 @@
 
             document.getElementById('main-screen').style.display = 'none';
             document.getElementById('scanner-wrapper').style.display = 'block';
+            
+            // ПОКАЗЫВАЕМ кнопку "Назад" вместо "Закрыть"
+            tg.BackButton.show();
 
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -162,9 +169,24 @@
                 scanning = true;
                 requestAnimationFrame(tick);
             } catch (err) {
-                alert("Ошибка доступа к камере. Проверьте настройки.");
-                resetUI();
+                alert("Ошибка доступа к камере.");
+                stopScanner();
             }
+        }
+
+        function stopScanner() {
+            scanning = false;
+            
+            // ПРЯЧЕМ кнопку "Назад" (возвращается "Закрыть")
+            tg.BackButton.hide();
+
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+            
+            document.getElementById('scanner-wrapper').style.display = 'none';
+            document.getElementById('main-screen').style.display = 'flex';
         }
 
         function tick() {
@@ -184,20 +206,15 @@
                         tg.HapticFeedback.notificationOccurred('success');
                     }
                     
-                    // Останавливаем камеру
-                    video.srcObject.getTracks().forEach(track => track.stop());
+                    // Убираем кнопку назад перед переходом
+                    tg.BackButton.hide();
                     
-                    // Переход по ссылке
+                    video.srcObject.getTracks().forEach(track => track.stop());
                     window.location.href = code.data;
                     return;
                 }
             }
             if (scanning) requestAnimationFrame(tick);
-        }
-
-        function resetUI() {
-            document.getElementById('scanner-wrapper').style.display = 'none';
-            document.getElementById('main-screen').style.display = 'flex';
         }
     </script>
 </body>
