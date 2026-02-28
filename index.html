@@ -9,13 +9,16 @@
     <style>
         :root {
             --tg-theme-bg-color: #fff;
+            --tg-theme-secondary-bg-color: #efeff4;
             --tg-theme-text-color: #000;
+            --tg-theme-hint-color: #999;
             --tg-theme-button-color: #007aff;
             --tg-theme-button-text-color: #fff;
+            --accent-color: #007aff;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--tg-theme-bg-color);
             color: var(--tg-theme-text-color);
             margin: 0;
@@ -23,11 +26,10 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            -webkit-user-select: none;
         }
 
-        /* =========================================
-           ГЛАВНЫЙ ЭКРАН
-           ========================================= */
+        /* ГЛАВНЫЙ ЭКРАН */
         #main-screen {
             flex: 1;
             display: flex;
@@ -36,121 +38,178 @@
             justify-content: center;
             text-align: center;
             padding: 20px;
+            transition: filter 0.3s ease;
         }
 
         .holder-img {
-            width: 200px;
-            height: auto;
-            opacity: 0.75;
+            width: 180px;
+            height: 180px;
+            opacity: 0.9;
             margin-bottom: 30px;
-            content: url('Pics/BlackHolder.PNG'); 
+            background: url('https://cdn-icons-png.flaticon.com/512/1037/1037308.png') no-repeat center/contain;
         }
 
-        h1 { font-size: 24px; font-weight: 600; margin: 0 0 10px; }
-        p { font-size: 16px; opacity: 0.6; max-width: 280px; line-height: 1.4; margin: 0 0 40px; }
+        h1 { font-size: 26px; font-weight: 700; margin: 0 0 10px; }
+        p { font-size: 16px; color: var(--tg-theme-hint-color); max-width: 280px; line-height: 1.4; margin: 0 0 40px; }
 
-        /* Контейнер для кнопок */
-        .button-group {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            width: 280px;
-        }
-
+        .button-group { display: flex; gap: 12px; width: 300px; }
         .btn-main {
-            flex: 1; /* Занимает основное место */
+            flex: 1;
             background-color: var(--tg-theme-button-color);
             color: var(--tg-theme-button-text-color);
             border: none;
-            padding: 16px 0;
+            padding: 16px;
             border-radius: 14px;
             font-size: 17px;
             font-weight: 600;
             cursor: pointer;
-            transition: opacity 0.2s;
         }
-
         .btn-gallery {
             width: 54px;
             height: 54px;
-            background-color: var(--tg-theme-button-color);
+            background-color: var(--tg-theme-secondary-bg-color);
             border: none;
             border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
-            flex-shrink: 0;
-            transition: opacity 0.2s;
         }
+        .btn-gallery img { width: 24px; height: 24px; }
 
-        .btn-gallery img {
-            width: 24px;
-            height: 24px;
-            filter: brightness(0) invert(1); /* Делает черную иконку белой */
-        }
-
-        .btn-main:active, .btn-gallery:active {
-            opacity: 0.7;
-        }
-
-        /* =========================================
-           ЭКРАН СКАНЕРА
-           ========================================= */
+        /* СКАНЕР */
         #scanner-wrapper {
             display: none;
             position: fixed;
-            top: 0; left: 0;
-            width: 100vw; height: 100vh;
-            background-color: #000;
-            z-index: 1000;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #000;
+            z-index: 100;
         }
-
-        #video-preview {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        #custom-overlay {
+        #video-preview { width: 100%; height: 100%; object-fit: cover; }
+        
+        .scan-frame {
             position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 260px; height: 260px;
+            border-radius: 40px;
+            box-shadow: 0 0 0 1000px rgba(0,0,0,0.6);
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        .scan-frame::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 40px;
+            border: 4px solid var(--accent-color);
+            animation: pulse 2s infinite;
+        }
+
+        /* МОДАЛКА НАСТРОЕК (iOS Style) */
+        #settings-modal {
+            position: fixed;
+            bottom: -100%;
+            left: 0; width: 100%; height: 90vh;
+            background-color: var(--tg-theme-secondary-bg-color);
+            border-radius: 20px 20px 0 0;
+            z-index: 1000;
+            transition: bottom 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+            display: flex;
+            flex-direction: column;
+            color: var(--tg-theme-text-color);
+        }
+        #settings-modal.active { bottom: 0; }
+
+        .settings-header {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .user-avatar {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            background: #ccc;
+            margin-bottom: 10px;
+            object-fit: cover;
+            border: 3px solid #fff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .user-name { font-size: 20px; font-weight: 700; }
+        .user-username { font-size: 14px; color: var(--tg-theme-hint-color); }
+
+        .settings-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+
+        .settings-group {
+            background: var(--tg-theme-bg-color);
+            margin-bottom: 30px;
+            border-top: 0.5px solid rgba(0,0,0,0.1);
+            border-bottom: 0.5px solid rgba(0,0,0,0.1);
+        }
+
+        .settings-row {
             display: flex;
             align-items: center;
-            justify-content: center;
-            pointer-events: none;
+            justify-content: space-between;
+            padding: 12px 16px;
+            font-size: 17px;
+            border-bottom: 0.5px solid rgba(0,0,0,0.1);
         }
+        .settings-row:last-child { border-bottom: none; }
 
-        .scan-frame {
-            width: 250px;
-            height: 250px;
-            border: none !important;
-            border-radius: 30px;
+        /* Toggle Switch Style */
+        .switch {
             position: relative;
-            box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.65);
+            display: inline-block;
+            width: 51px; height: 31px;
         }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #e9e9eb;
+            transition: .4s; border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 27px; width: 27px;
+            left: 2px; bottom: 2px;
+            background-color: white;
+            transition: .4s; border-radius: 50%;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+        }
+        input:checked + .slider { background-color: #34c759; }
+        input:checked + .slider:before { transform: translateX(20px); }
 
-        .scan-text {
-            position: absolute;
-            bottom: -50px;
-            left: 0; width: 100%;
+        .done-btn {
+            margin: 20px;
+            background: var(--tg-theme-button-color);
             color: #fff;
-            font-size: 15px;
-            font-weight: 500;
-            text-align: center;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            border: none;
+            padding: 16px;
+            border-radius: 14px;
+            font-size: 17px; font-weight: 600;
         }
 
-        #file-input { display: none; }
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        .blur-bg { filter: blur(5px); }
     </style>
 </head>
 <body>
 
     <div id="main-screen">
         <div class="holder-img"></div>
-        <h1>Отсканируй код</h1>
-        <p>На обратной стороне твоего подарочного пакетика есть QR-код. Отсканируй его!</p>
+        <h1>Jedi Scanner</h1>
+        <p>Направьте камеру на QR-код или выберите изображение из галереи</p>
         
         <div class="button-group">
             <button class="btn-main" onclick="startScanner()">Сканировать</button>
@@ -158,55 +217,132 @@
                 <img src="https://cdn-icons-png.flaticon.com/512/3342/3342176.png" alt="Gallery">
             </button>
         </div>
-        <input type="file" id="file-input" accept="image/*" onchange="scanFromFile(event)">
+        <input type="file" id="file-input" accept="image/*" onchange="scanFromFile(event)" style="display:none">
     </div>
 
     <div id="scanner-wrapper">
         <video id="video-preview" playsinline></video>
         <canvas id="scan-canvas" style="display:none;"></canvas>
-        
-        <div id="custom-overlay">
-            <div class="scan-frame">
-                <div class="scan-text">Помести код в центр экрана</div>
+        <div class="scan-frame"></div>
+    </div>
+
+    <div id="settings-modal">
+        <div class="settings-header">
+            <img id="user-pic" class="user-avatar" src="" alt="">
+            <div id="user-full-name" class="user-name">User Name</div>
+            <div id="user-nick" class="user-username">@username</div>
+        </div>
+
+        <div class="settings-content">
+            <div class="settings-group">
+                <div class="settings-row">
+                    <span>Вибрация (Haptic)</span>
+                    <label class="switch">
+                        <input type="checkbox" id="setting-haptic" checked onchange="saveSettings()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="settings-row">
+                    <span>Блюр интерфейса</span>
+                    <label class="switch">
+                        <input type="checkbox" id="setting-blur" onchange="applyBlur()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <div class="settings-row" onclick="changeAccent()">
+                    <span>Цвет темы</span>
+                    <span id="current-accent" style="color: var(--accent-color); font-weight: 600;">Blue</span>
+                </div>
+                <div class="settings-row">
+                    <span>Быстрый скан</span>
+                    <label class="switch">
+                        <input type="checkbox" id="setting-fast" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
             </div>
         </div>
+
+        <button class="done-btn" onclick="toggleSettings()">Готово</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+        tg.enableClosingConfirmation();
+
+        // Настройка кнопки настроек в Telegram
+        tg.SettingsButton.show();
+        tg.SettingsButton.onClick(() => toggleSettings());
 
         const video = document.getElementById('video-preview');
         const canvas = document.getElementById('scan-canvas');
         const context = canvas.getContext('2d', { willReadFrequently: true });
         let scanning = false;
 
-        // Кнопка Back в Telegram
-        tg.BackButton.onClick(() => {
-            stopScanner();
-        });
+        // Инициализация данных пользователя
+        function initUser() {
+            const user = tg.initDataUnsafe?.user;
+            if (user) {
+                document.getElementById('user-pic').src = user.photo_url || 'https://ui-avatars.com/api/?name=' + user.first_name;
+                document.getElementById('user-full-name').innerText = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+                document.getElementById('user-nick').innerText = user.username ? '@' + user.username : 'ID: ' + user.id;
+            }
+        }
+        initUser();
 
-        // 1. Скан с камеры
+        // Управление модалкой
+        function toggleSettings() {
+            const modal = document.getElementById('settings-modal');
+            const main = document.getElementById('main-screen');
+            const isActive = modal.classList.toggle('active');
+            
+            if (document.getElementById('setting-haptic').checked) {
+                tg.HapticFeedback.impactOccurred('medium');
+            }
+
+            if (isActive && document.getElementById('setting-blur').checked) {
+                main.classList.add('blur-bg');
+            } else {
+                main.classList.remove('blur-bg');
+            }
+        }
+
+        function applyBlur() {
+            const main = document.getElementById('main-screen');
+            if (document.getElementById('setting-blur').checked && document.getElementById('settings-modal').classList.contains('active')) {
+                main.classList.add('blur-bg');
+            } else {
+                main.classList.remove('blur-bg');
+            }
+            saveSettings();
+        }
+
+        // Логика сканера
         async function startScanner() {
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            if (document.getElementById('setting-haptic').checked) tg.HapticFeedback.impactOccurred('light');
             document.getElementById('main-screen').style.display = 'none';
             document.getElementById('scanner-wrapper').style.display = 'block';
             tg.BackButton.show();
 
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } 
+                    video: { facingMode: "environment" } 
                 });
                 video.srcObject = stream;
-                video.setAttribute("playsinline", true);
                 video.play();
                 scanning = true;
                 requestAnimationFrame(tick);
             } catch (err) {
-                alert("Ошибка камеры.");
+                tg.showAlert("Доступ к камере отклонен");
                 stopScanner();
             }
         }
+
+        tg.BackButton.onClick(() => stopScanner());
 
         function stopScanner() {
             scanning = false;
@@ -225,49 +361,79 @@
                 canvas.width = video.videoWidth;
                 context.drawImage(video, 0, 0, canvas.width, canvas.height);
                 const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
 
                 if (code) {
-                    processResult(code.data);
+                    handleResult(code.data);
                     return;
                 }
             }
             if (scanning) requestAnimationFrame(tick);
         }
 
-        // 2. Скан из файла (галерея)
+        function handleResult(url) {
+            if (document.getElementById('setting-haptic').checked) {
+                tg.HapticFeedback.notificationOccurred('success');
+            }
+            stopScanner();
+            tg.showConfirm(`Открыть ссылку?\n${url}`, (ok) => {
+                if (ok) tg.openLink(url);
+            });
+        }
+
         function scanFromFile(event) {
             const file = event.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = (e) => {
                 const img = new Image();
-                img.onload = function() {
+                img.onload = () => {
                     canvas.width = img.width;
                     canvas.height = img.height;
                     context.drawImage(img, 0, 0);
-                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                    const code = jsQR(imageData.data, imageData.width, imageData.height);
-                    
-                    if (code) {
-                        processResult(code.data);
-                    } else {
-                        alert("QR-код на фото не найден. Попробуйте другое фото.");
-                    }
+                    const code = jsQR(context.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
+                    if (code) handleResult(code.data);
+                    else tg.showAlert("QR-код не найден");
                 };
                 img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
 
-        function processResult(url) {
-            scanning = false;
-            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-            tg.BackButton.hide();
-            if (video.srcObject) video.srcObject.getTracks().forEach(track => track.stop());
-            window.location.href = url;
+        // Дополнительные настройки
+        function changeAccent() {
+            const colors = ['#007aff', '#ff9500', '#af52de', '#34c759'];
+            const names = ['Blue', 'Orange', 'Purple', 'Green'];
+            let current = colors.indexOf(getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim());
+            let next = (current + 1) % colors.length;
+            
+            document.documentElement.style.setProperty('--accent-color', colors[next]);
+            document.getElementById('current-accent').innerText = names[next];
+            document.getElementById('current-accent').style.color = colors[next];
+            saveSettings();
         }
+
+        function saveSettings() {
+            const settings = {
+                haptic: document.getElementById('setting-haptic').checked,
+                blur: document.getElementById('setting-blur').checked,
+                accent: document.documentElement.style.getPropertyValue('--accent-color')
+            };
+            localStorage.setItem('jedi_settings', JSON.stringify(settings));
+        }
+
+        // Загрузка настроек
+        window.onload = () => {
+            const saved = JSON.parse(localStorage.getItem('jedi_settings'));
+            if (saved) {
+                document.getElementById('setting-haptic').checked = saved.haptic;
+                document.getElementById('setting-blur').checked = saved.blur;
+                if (saved.accent) {
+                    document.documentElement.style.setProperty('--accent-color', saved.accent);
+                    // Обновить текст в меню можно через поиск по массиву цветов
+                }
+            }
+        };
     </script>
 </body>
 </html>
