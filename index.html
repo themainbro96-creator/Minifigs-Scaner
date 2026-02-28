@@ -3,288 +3,425 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Jedi Scanner Pro</title>
+    <title>Jedi Scanner</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         :root {
-            --ios-blue: #007AFF;
-            --ios-bg: #F2F2F7;
-            --ios-card: #FFFFFF;
-            --ios-text: #000000;
-            --liquid-filter: url('#liquid');
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --ios-bg: #000000;
-                --ios-card: #1C1C1E;
-                --ios-text: #FFFFFF;
-            }
+            /* Базовые цвета ТГ, но мы адаптируем их под эффекты */
+            --tg-theme-bg-color: #000;
+            --tg-theme-text-color: #fff;
+            --tg-theme-button-color: #007aff;
+            --tg-theme-button-text-color: #fff;
+            
+            /* Цвета iOS 26 Liquid Glass */
+            --glass-bg: rgba(30, 30, 35, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.08);
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--ios-bg);
-            color: var(--ios-text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--tg-theme-bg-color);
+            color: var(--tg-theme-text-color);
             margin: 0;
             height: 100vh;
             overflow: hidden;
-            -webkit-tap-highlight-color: transparent;
+            display: flex;
+            flex-direction: column;
+            -webkit-tap-highlight-color: transparent; /* Убираем стандартную подсветку тапа */
         }
 
-        /* ЭФФЕКТ МАРМЕЛАДА (Liquid) */
-        .liquid-container {
-            filter: contrast(20); /* Усиливает четкость после блюра */
-            background: var(--ios-bg);
+        /* =========================================
+           ГЛАВНЫЙ ЭКРАН
+           ========================================= */
+        #main-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            z-index: 10;
         }
 
-        .btn-liquid {
+        .holder-img {
+            width: 200px;
+            height: auto;
+            opacity: 0.75;
+            margin-bottom: 30px;
+            content: url('Pics/BlackHolder.PNG'); 
+        }
+
+        h1 { font-size: 24px; font-weight: 600; margin: 0 0 10px; }
+        p { font-size: 16px; opacity: 0.6; max-width: 280px; line-height: 1.4; margin: 0 0 40px; }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            width: 280px;
+        }
+
+        /* МАРМЕЛАДНЫЕ КНОПКИ (iOS 26 Style) */
+        .btn-main, .btn-gallery {
             position: relative;
-            background: var(--ios-blue);
-            color: white;
+            background-color: var(--tg-theme-button-color);
+            color: var(--tg-theme-button-text-color);
             border: none;
-            border-radius: 18px;
+            border-radius: 24px; /* Более круглые края как в iOS 26 */
             font-size: 17px;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1.2), background 0.3s;
+            overflow: hidden;
+            
+            /* Переменные для физики (меняются через JS) */
+            transform: scale(var(--scale, 1)) translate(var(--tx, 0px), var(--ty, 0px));
+            filter: brightness(var(--brightness, 1));
+            transition: transform 0.4s cubic-bezier(0.3, 1.5, 0.4, 1), filter 0.3s;
+            will-change: transform, filter;
+            outline: none;
+        }
+
+        .btn-main {
+            flex: 1;
+            padding: 18px 0;
+        }
+
+        .btn-gallery {
+            width: 58px;
+            height: 58px;
             display: flex;
             align-items: center;
             justify-content: center;
-            user-select: none;
-            touch-action: none;
+            flex-shrink: 0;
         }
 
-        /* ПЛАШКА ПРЕДПРОСМОТРА ССЫЛКИ */
-        #link-preview {
+        .btn-gallery img {
+            width: 24px;
+            height: 24px;
+            filter: brightness(0) invert(1);
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Внутреннее свечение под пальцем */
+        .btn-main::after, .btn-gallery::after {
+            content: '';
             position: absolute;
-            bottom: 120px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            width: 80%;
-            background: rgba(28, 28, 30, 0.85);
-            backdrop-filter: blur(20px);
-            border-radius: 20px;
-            padding: 15px;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle 70px at var(--x, 50%) var(--y, 50%), rgba(255, 255, 255, 0.3), transparent);
+            opacity: var(--glow-opacity, 0);
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .btn-main span {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* =========================================
+           ЭКРАН СКАНЕРА И ПЛАШКА
+           ========================================= */
+        #scanner-wrapper {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background-color: #000;
+            z-index: 1000;
+        }
+
+        #video-preview {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #custom-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2), opacity 0.3s;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .scan-frame {
+            width: 250px;
+            height: 250px;
+            border: none !important;
+            border-radius: 40px; /* Более глубокое скругление */
+            position: relative;
+            box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.7);
+        }
+
+        .scan-text {
+            position: absolute;
+            bottom: -50px;
+            left: 0; width: 100%;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        /* Всплывающая плашка iOS 26 Glass */
+        #scan-popup {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin-top: 155px; /* Под рамкой сканера */
+            transform: translate(-50%, 20px) scale(0.9);
             opacity: 0;
-            z-index: 2000;
-            color: white;
+            visibility: hidden;
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px) saturate(150%);
+            -webkit-backdrop-filter: blur(25px) saturate(150%);
+            border: 1px solid var(--glass-border);
+            border-radius: 100px; /* Идеальная капсула */
+            padding: 14px 28px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        #link-preview.show {
-            transform: translateX(-50%) translateY(0);
+        #scan-popup.show {
             opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, 0) scale(1);
         }
 
-        /* НАСТРОЙКИ (Bottom Sheet) */
-        #settings-sheet {
+        #file-input { display: none; }
+
+        /* =========================================
+           НАСТРОЙКИ (МОДАЛКА)
+           ========================================= */
+        #settings-overlay {
             position: fixed;
-            bottom: 0;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.4s;
+            z-index: 1999;
+        }
+
+        #settings-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #settings-modal {
+            position: fixed;
+            bottom: -100%;
             left: 0;
             width: 100%;
-            height: 85%;
-            background: var(--ios-card);
-            border-top-left-radius: 30px;
-            border-top-right-radius: 30px;
-            transform: translateY(100%);
-            transition: transform 0.5s cubic-bezier(0.3, 0.8, 0.3, 1);
-            z-index: 3000;
-            padding: 20px;
+            height: 85vh; /* 85% экрана */
+            background: rgba(25, 25, 28, 0.85);
+            backdrop-filter: blur(35px) saturate(200%);
+            -webkit-backdrop-filter: blur(35px) saturate(200%);
+            border-top: 1px solid var(--glass-border);
+            border-radius: 40px 40px 0 0;
+            z-index: 2000;
+            transition: bottom 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            padding: 24px;
             box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
         }
 
-        #settings-sheet.open { transform: translateY(0); }
+        #settings-modal.show {
+            bottom: 0;
+        }
 
-        .sheet-handle {
+        .modal-handle {
             width: 40px;
             height: 5px;
-            background: #444;
-            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
             margin: 0 auto 20px;
         }
 
-        /* iOS 26 SWITCHER */
+        #settings-modal h2 {
+            margin: 0 0 30px;
+            font-size: 28px;
+            font-weight: 700;
+            color: #fff;
+        }
+
         .setting-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 0;
-            border-bottom: 1px solid rgba(128,128,128,0.2);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 16px 20px;
+            border-radius: 20px; /* Округлые элементы интерфейса */
+            border: 1px solid var(--glass-border);
         }
 
-        .ios-switch {
-            appearance: none;
-            width: 50px;
-            height: 30px;
-            background: #39393d;
-            border-radius: 15px;
+        .setting-row span {
+            font-size: 17px;
+            font-weight: 500;
+            color: #fff;
+        }
+
+        /* iOS 26 Switcher / Toggle */
+        .ios-toggle {
             position: relative;
-            transition: 0.3s;
-            cursor: pointer;
+            display: inline-block;
+            width: 54px;
+            height: 32px;
         }
 
-        .ios-switch:checked { background: #34C759; }
-        .ios-switch::before {
-            content: '';
+        .ios-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
             position: absolute;
-            width: 26px; height: 26px;
-            background: white;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255, 255, 255, 0.15);
+            transition: .4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            border-radius: 34px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 2px;
+            bottom: 2px;
+            background-color: #fff;
+            transition: .4s cubic-bezier(0.2, 0.8, 0.2, 1);
             border-radius: 50%;
-            top: 2px; left: 2px;
-            transition: 0.3s cubic-bezier(0.3, 1.5, 0.3, 1);
-        }
-        .ios-switch:checked::before { transform: translateX(20px); }
-
-        /* СКАНЕР */
-        #scanner-wrapper {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; display: none;
         }
 
-        .scan-frame {
-            width: 260px; height: 260px;
-            border-radius: 40px;
-            box-shadow: 0 0 0 4000px rgba(0,0,0,0.7);
-            position: relative;
+        input:checked + .slider {
+            background-color: #34c759; /* Яркий зелёный */
+            border-color: transparent;
         }
 
-        /* УТИЛИТЫ */
-        .blur-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            z-index: 2500;
+        input:checked + .slider:before {
+            transform: translateX(22px);
         }
     </style>
 </head>
 <body>
 
-    <svg style="visibility: hidden; position: absolute;" width="0" height="0">
-        <defs>
-            <filter id="liquid">
-                <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
-                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9" result="liquid" />
-            </filter>
-        </defs>
-    </svg>
-
-    <div id="main-screen" style="display: flex; flex-direction: column; height: 100vh; align-items: center; justify-content: center; gap: 20px;">
-        <div style="text-align: center;">
-            <h1 style="margin-bottom: 5px;">Jedi Scanner</h1>
-            <p style="opacity: 0.6; font-size: 14px;">iOS 26 Liquid Edition</p>
-        </div>
-
-        <button class="btn-liquid" id="scan-btn" style="width: 280px; height: 60px;">
-            Сканировать
-        </button>
+    <div id="main-screen">
+        <div class="holder-img"></div>
+        <h1>Отсканируй код</h1>
+        <p>На обратной стороне твоего подарочного пакетика есть QR-код. Отсканируй его!</p>
         
-        <button onclick="openSettings()" style="background: none; border: none; color: var(--ios-blue); font-size: 16px; font-weight: 500;">
-            Settings
-        </button>
+        <div class="button-group">
+            <button class="btn-main" onclick="startScanner()"><span>Сканировать</span></button>
+            <button class="btn-gallery" onclick="document.getElementById('file-input').click()">
+                <img src="https://cdn-icons-png.flaticon.com/512/3342/3342176.png" alt="Gallery">
+            </button>
+        </div>
+        <input type="file" id="file-input" accept="image/*" onchange="scanFromFile(event)">
     </div>
 
     <div id="scanner-wrapper">
-        <video id="video-preview" style="width: 100%; height: 100%; object-fit: cover;" playsinline></video>
-        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; pointer-events: none;">
-            <div class="scan-frame"></div>
-        </div>
-
-        <div id="link-preview">
-            <div style="overflow: hidden; flex: 1; margin-right: 10px;">
-                <div style="font-size: 12px; opacity: 0.5;">НАЙДЕНА ССЫЛКА</div>
-                <div id="detected-url" style="font-weight: 600; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">google.com</div>
+        <video id="video-preview" playsinline></video>
+        <canvas id="scan-canvas" style="display:none;"></canvas>
+        
+        <div id="custom-overlay">
+            <div class="scan-frame">
+                <div class="scan-text">Помести код в центр экрана</div>
+                
+                <div id="scan-popup">
+                    <span style="font-size: 20px;">🔗</span>
+                    <span id="popup-url-text">Сайт</span>
+                </div>
             </div>
-            <button onclick="redirectToUrl()" class="btn-liquid" style="width: 80px; height: 40px; font-size: 14px; background: white; color: black;">
-                Открыть
-            </button>
         </div>
     </div>
 
-    <div class="blur-overlay" id="overlay" onclick="closeSettings()"></div>
-    <div id="settings-sheet">
-        <div class="sheet-handle"></div>
+    <div id="settings-overlay" onclick="closeSettings()"></div>
+    <div id="settings-modal">
+        <div class="modal-handle"></div>
         <h2>Настройки</h2>
-        
         <div class="setting-row">
-            <span>Прямой переход (без плашки)</span>
-            <input type="checkbox" id="direct-jump" class="ios-switch">
+            <span>Мгновенно открывать ссылку</span>
+            <label class="ios-toggle">
+                <input type="checkbox" id="instant-redirect-toggle" onchange="toggleInstantRedirect()">
+                <span class="slider"></span>
+            </label>
         </div>
-        
-        <div class="setting-row" style="opacity: 0.5;">
-            <span>Тактильная отдача</span>
-            <input type="checkbox" checked disabled class="ios-switch">
-        </div>
-
-        <button class="btn-liquid" onclick="closeSettings()" style="margin-top: 40px; width: 100%; height: 55px; background: var(--ios-card); color: var(--ios-text); border: 1px solid rgba(128,128,128,0.3);">
-            Готово
-        </button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        let lastDetectedUrl = "";
-        let isDirectJump = false;
+        // Инициализация кнопки настроек в Telegram
+        tg.SettingsButton.show();
+        tg.SettingsButton.onClick(() => openSettings());
 
-        // --- LIQUID BUTTON LOGIC ---
-        document.querySelectorAll('.btn-liquid').forEach(btn => {
-            btn.addEventListener('pointerdown', (e) => {
-                btn.style.transform = 'scale(0.96)';
-                btn.style.filter = 'brightness(1.2)';
-                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-            });
+        const video = document.getElementById('video-preview');
+        const canvas = document.getElementById('scan-canvas');
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+        
+        let scanning = false;
+        let instantRedirect = false; // По умолчанию: плавная плашка
 
-            btn.addEventListener('pointermove', (e) => {
-                const rect = btn.getBoundingClientRect();
-                const x = e.clientX - rect.left - rect.width / 2;
-                const y = e.clientY - rect.top - rect.height / 2;
-                // Эффект "мармеладного" смещения
-                btn.style.transform = `scale(0.98) translate(${x/10}px, ${y/10}px)`;
-            });
-
-            btn.addEventListener('pointerup', () => {
-                btn.style.transform = 'scale(1)';
-                btn.style.filter = 'none';
-            });
+        // Кнопка Back в Telegram
+        tg.BackButton.onClick(() => {
+            stopScanner();
+            closeSettings();
         });
 
-        // --- SCANNER LOGIC ---
-        const video = document.getElementById('video-preview');
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d', { willReadFrequently: true });
-        let scanning = false;
-
-        document.getElementById('scan-btn').onclick = startScanner;
-
+        // 1. Скан с камеры
         async function startScanner() {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
             document.getElementById('main-screen').style.display = 'none';
             document.getElementById('scanner-wrapper').style.display = 'block';
+            document.getElementById('scan-popup').classList.remove('show');
             tg.BackButton.show();
+            tg.SettingsButton.hide();
 
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: "environment" } 
-            });
-            video.srcObject = stream;
-            video.play();
-            scanning = true;
-            requestAnimationFrame(tick);
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } 
+                });
+                video.srcObject = stream;
+                video.setAttribute("playsinline", true);
+                video.play();
+                scanning = true;
+                requestAnimationFrame(tick);
+            } catch (err) {
+                alert("Ошибка камеры.");
+                stopScanner();
+            }
         }
 
-        tg.BackButton.onClick(() => {
+        function stopScanner() {
             scanning = false;
-            video.srcObject.getTracks().forEach(t => t.stop());
+            tg.BackButton.hide();
+            tg.SettingsButton.show();
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
             document.getElementById('scanner-wrapper').style.display = 'none';
             document.getElementById('main-screen').style.display = 'flex';
-            tg.BackButton.hide();
-        });
+        }
 
         function tick() {
             if (video.readyState === video.HAVE_ENOUGH_DATA && scanning) {
@@ -292,45 +429,152 @@
                 canvas.width = video.videoWidth;
                 context.drawImage(video, 0, 0, canvas.width, canvas.height);
                 const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
 
                 if (code) {
-                    handleResult(code.data);
+                    processResult(code.data);
+                    return;
                 }
             }
             if (scanning) requestAnimationFrame(tick);
         }
 
-        function handleResult(url) {
-            if (url === lastDetectedUrl) return;
-            lastDetectedUrl = url;
+        // 2. Скан из файла (галерея)
+        function scanFromFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    context.drawImage(img, 0, 0);
+                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height);
+                    
+                    if (code) {
+                        processResult(code.data);
+                    } else {
+                        alert("QR-код на фото не найден. Попробуйте другое фото.");
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 3. Обработка результата (Плашка или Мгновенно)
+        function processResult(url) {
             if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-
-            if (document.getElementById('direct-jump').checked) {
+            
+            if (instantRedirect) {
+                // Если настройка "Мгновенно" включена
+                scanning = false;
+                tg.BackButton.hide();
+                if (video.srcObject) video.srcObject.getTracks().forEach(track => track.stop());
                 window.location.href = url;
             } else {
-                const preview = document.getElementById('link-preview');
-                document.getElementById('detected-url').innerText = url.replace('https://', '').replace('http://', '');
-                preview.classList.add('show');
+                // Если нужна плашка (iOS 26 Liquid Glass)
+                scanning = false; // Останавливаем поиск новых кодов, но видео висит фоном
+                
+                // Вытаскиваем имя сайта или оставляем текст
+                let domain = url;
+                try { domain = new URL(url).hostname; } catch(e) {}
+                
+                document.getElementById('popup-url-text').innerText = domain;
+                const popup = document.getElementById('scan-popup');
+                popup.classList.add('show');
+                
+                popup.onclick = () => {
+                    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                    window.location.href = url;
+                };
             }
         }
 
-        function redirectToUrl() {
-            if (lastDetectedUrl) window.location.href = lastDetectedUrl;
-        }
-
-        // --- SETTINGS LOGIC ---
+        // 4. Настройки
         function openSettings() {
-            document.getElementById('overlay').style.display = 'block';
-            document.getElementById('settings-sheet').classList.add('open');
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            document.getElementById('settings-overlay').classList.add('show');
+            document.getElementById('settings-modal').classList.add('show');
+            tg.BackButton.show();
         }
 
         function closeSettings() {
-            document.getElementById('overlay').style.display = 'none';
-            document.getElementById('settings-sheet').classList.remove('open');
+            document.getElementById('settings-overlay').classList.remove('show');
+            document.getElementById('settings-modal').classList.remove('show');
+            if (document.getElementById('main-screen').style.display !== 'none') {
+                tg.BackButton.hide();
+            }
         }
+
+        function toggleInstantRedirect() {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            instantRedirect = document.getElementById('instant-redirect-toggle').checked;
+        }
+
+        // 5. ФИЗИКА "МАРМЕЛАДА" (iOS 26 Liquid Interaction)
+        function applyMarmaladeEffect(element) {
+            let isDown = false;
+            let startX, startY;
+
+            element.addEventListener('pointerdown', (e) => {
+                isDown = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                
+                // Мгновенная реакция: увеличиваем и подсвечиваем
+                element.style.transition = 'transform 0.1s ease-out, filter 0.2s';
+                element.style.setProperty('--scale', '1.05');
+                element.style.setProperty('--brightness', '1.15');
+                updateGlow(e);
+                
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                element.setPointerCapture(e.pointerId);
+            });
+
+            element.addEventListener('pointermove', (e) => {
+                if (!isDown) return;
+                updateGlow(e);
+                
+                // Рассчитываем тягу (желейную деформацию)
+                const maxPull = 14; 
+                const dx = Math.max(-maxPull, Math.min(maxPull, (e.clientX - startX) * 0.35));
+                const dy = Math.max(-maxPull, Math.min(maxPull, (e.clientY - startY) * 0.35));
+                
+                element.style.setProperty('--tx', `${dx}px`);
+                element.style.setProperty('--ty', `${dy}px`);
+            });
+
+            const release = () => {
+                if (!isDown) return;
+                isDown = false;
+                
+                // Пружинистый возврат
+                element.style.transition = 'transform 0.5s cubic-bezier(0.3, 1.5, 0.4, 1), filter 0.4s';
+                element.style.setProperty('--scale', '1');
+                element.style.setProperty('--tx', '0px');
+                element.style.setProperty('--ty', '0px');
+                element.style.setProperty('--brightness', '1');
+                element.style.setProperty('--glow-opacity', '0');
+            };
+
+            element.addEventListener('pointerup', release);
+            element.addEventListener('pointercancel', release);
+
+            function updateGlow(e) {
+                const rect = element.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                element.style.setProperty('--x', `${x}px`);
+                element.style.setProperty('--y', `${y}px`);
+                element.style.setProperty('--glow-opacity', '1');
+            }
+        }
+
+        document.querySelectorAll('.btn-main, .btn-gallery').forEach(applyMarmaladeEffect);
     </script>
 </body>
 </html>
