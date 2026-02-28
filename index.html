@@ -3,289 +3,288 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Jedi Scanner</title>
+    <title>Jedi Scanner Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         :root {
-            --tg-theme-bg-color: #fff;
-            --tg-theme-text-color: #000;
-            --tg-theme-button-color: #007aff;
-            --tg-theme-button-text-color: #fff;
-            --tg-theme-hint-color: #999;
+            --ios-blue: #007AFF;
+            --ios-bg: #F2F2F7;
+            --ios-card: #FFFFFF;
+            --ios-text: #000000;
+            --liquid-filter: url('#liquid');
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --ios-bg: #000000;
+                --ios-card: #1C1C1E;
+                --ios-text: #FFFFFF;
+            }
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--tg-theme-bg-color);
-            color: var(--tg-theme-text-color);
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--ios-bg);
+            color: var(--ios-text);
             margin: 0;
             height: 100vh;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        /* =========================================
-           ГЛАВНЫЙ ЭКРАН
-           ========================================= */
-        #main-screen {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 20px;
+        /* ЭФФЕКТ МАРМЕЛАДА (Liquid) */
+        .liquid-container {
+            filter: contrast(20); /* Усиливает четкость после блюра */
+            background: var(--ios-bg);
         }
 
-        .holder-img {
-            width: 180px;
-            height: auto;
-            opacity: 0.8;
-            margin-bottom: 25px;
-            content: url('Pics/BlackHolder.PNG'); 
-        }
-
-        h1 { font-size: 24px; font-weight: 700; margin: 0 0 10px; }
-        p { font-size: 16px; color: var(--tg-theme-hint-color); max-width: 280px; line-height: 1.4; margin: 0 0 30px; }
-
-        .button-group {
-            display: flex;
-            gap: 12px;
-            width: 280px;
-            margin-bottom: 20px;
-        }
-
-        .btn-main {
-            flex: 1;
-            background-color: var(--tg-theme-button-color);
-            color: var(--tg-theme-button-text-color);
+        .btn-liquid {
+            position: relative;
+            background: var(--ios-blue);
+            color: white;
             border: none;
-            padding: 16px 0;
-            border-radius: 14px;
+            border-radius: 18px;
             font-size: 17px;
             font-weight: 600;
             cursor: pointer;
-        }
-
-        .btn-gallery {
-            width: 54px;
-            height: 54px;
-            background-color: var(--tg-theme-button-color);
-            border: none;
-            border-radius: 14px;
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1.2), background 0.3s;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
+            user-select: none;
+            touch-action: none;
         }
 
-        .btn-gallery img {
-            width: 24px;
-            height: 24px;
-            filter: brightness(0) invert(1);
-        }
-
-        /* Настройки */
-        .settings-row {
+        /* ПЛАШКА ПРЕДПРОСМОТРА ССЫЛКИ */
+        #link-preview {
+            position: absolute;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            width: 80%;
+            background: rgba(28, 28, 30, 0.85);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 15px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            width: 280px;
-            padding: 12px;
-            background: rgba(0,0,0,0.05);
-            border-radius: 12px;
-            font-size: 14px;
-        }
-
-        /* Тумблер */
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 40px;
-            height: 22px;
-        }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #ccc; transition: .4s; border-radius: 34px;
-        }
-        .slider:before {
-            position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px;
-            background-color: white; transition: .4s; border-radius: 50%;
-        }
-        input:checked + .slider { background-color: var(--tg-theme-button-color); }
-        input:checked + .slider:before { transform: translateX(18px); }
-
-        /* =========================================
-           ЭКРАН СКАНЕРА
-           ========================================= */
-        #scanner-wrapper {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100vw; height: 100vh;
-            background-color: #000;
-            z-index: 1000;
-        }
-
-        #video-preview { width: 100%; height: 100%; object-fit: cover; }
-
-        #custom-overlay {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            pointer-events: none;
-        }
-
-        .scan-frame {
-            width: 260px;
-            height: 260px;
-            border-radius: 40px;
-            position: relative;
-            box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.6);
-            border: 2px solid rgba(255,255,255,0.2);
-        }
-
-        /* Плашка с результатом */
-        #result-pill {
-            position: absolute;
-            bottom: 120px;
-            background: rgba(28, 28, 30, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 14px 24px;
-            border-radius: 20px;
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            pointer-events: auto; /* Позволяем нажимать */
-            transform: translateY(100px);
+            transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2), opacity 0.3s;
             opacity: 0;
-            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-            max-width: 80%;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 2000;
+            color: white;
         }
 
-        #result-pill.visible {
-            transform: translateY(0);
+        #link-preview.show {
+            transform: translateX(-50%) translateY(0);
             opacity: 1;
         }
 
-        .pill-label { font-size: 12px; opacity: 0.5; text-transform: uppercase; letter-spacing: 1px; }
-        .pill-url { font-size: 17px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
-
-        .scan-text {
-            position: absolute;
-            bottom: 40px;
-            color: rgba(255,255,255,0.6);
-            font-size: 14px;
-            text-align: center;
+        /* НАСТРОЙКИ (Bottom Sheet) */
+        #settings-sheet {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 85%;
+            background: var(--ios-card);
+            border-top-left-radius: 30px;
+            border-top-right-radius: 30px;
+            transform: translateY(100%);
+            transition: transform 0.5s cubic-bezier(0.3, 0.8, 0.3, 1);
+            z-index: 3000;
+            padding: 20px;
+            box-sizing: border-box;
         }
 
-        #file-input { display: none; }
+        #settings-sheet.open { transform: translateY(0); }
+
+        .sheet-handle {
+            width: 40px;
+            height: 5px;
+            background: #444;
+            border-radius: 3px;
+            margin: 0 auto 20px;
+        }
+
+        /* iOS 26 SWITCHER */
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(128,128,128,0.2);
+        }
+
+        .ios-switch {
+            appearance: none;
+            width: 50px;
+            height: 30px;
+            background: #39393d;
+            border-radius: 15px;
+            position: relative;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .ios-switch:checked { background: #34C759; }
+        .ios-switch::before {
+            content: '';
+            position: absolute;
+            width: 26px; height: 26px;
+            background: white;
+            border-radius: 50%;
+            top: 2px; left: 2px;
+            transition: 0.3s cubic-bezier(0.3, 1.5, 0.3, 1);
+        }
+        .ios-switch:checked::before { transform: translateX(20px); }
+
+        /* СКАНЕР */
+        #scanner-wrapper {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; display: none;
+        }
+
+        .scan-frame {
+            width: 260px; height: 260px;
+            border-radius: 40px;
+            box-shadow: 0 0 0 4000px rgba(0,0,0,0.7);
+            position: relative;
+        }
+
+        /* УТИЛИТЫ */
+        .blur-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 2500;
+        }
     </style>
 </head>
 <body>
 
-    <div id="main-screen">
-        <div class="holder-img"></div>
-        <h1>Отсканируй код</h1>
-        <p>Наведи камеру на QR-код, чтобы открыть подарок</p>
+    <svg style="visibility: hidden; position: absolute;" width="0" height="0">
+        <defs>
+            <filter id="liquid">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9" result="liquid" />
+            </filter>
+        </defs>
+    </svg>
+
+    <div id="main-screen" style="display: flex; flex-direction: column; height: 100vh; align-items: center; justify-content: center; gap: 20px;">
+        <div style="text-align: center;">
+            <h1 style="margin-bottom: 5px;">Jedi Scanner</h1>
+            <p style="opacity: 0.6; font-size: 14px;">iOS 26 Liquid Edition</p>
+        </div>
+
+        <button class="btn-liquid" id="scan-btn" style="width: 280px; height: 60px;">
+            Сканировать
+        </button>
         
-        <div class="button-group">
-            <button class="btn-main" onclick="startScanner()">Открыть сканер</button>
-            <button class="btn-gallery" onclick="document.getElementById('file-input').click()">
-                <img src="https://cdn-icons-png.flaticon.com/512/3342/3342176.png" alt="Gallery">
-            </button>
-        </div>
-
-        <div class="settings-row">
-            <span>Переходить автоматически</span>
-            <label class="switch">
-                <input type="checkbox" id="auto-redirect-toggle">
-                <span class="slider"></span>
-            </label>
-        </div>
-
-        <input type="file" id="file-input" accept="image/*" onchange="scanFromFile(event)">
+        <button onclick="openSettings()" style="background: none; border: none; color: var(--ios-blue); font-size: 16px; font-weight: 500;">
+            Settings
+        </button>
     </div>
 
     <div id="scanner-wrapper">
-        <video id="video-preview" playsinline></video>
-        <canvas id="scan-canvas" style="display:none;"></canvas>
-        
-        <div id="custom-overlay">
+        <video id="video-preview" style="width: 100%; height: 100%; object-fit: cover;" playsinline></video>
+        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; pointer-events: none;">
             <div class="scan-frame"></div>
-
-            <div id="result-pill" onclick="confirmRedirect()">
-                <span class="pill-label">Найдена ссылка</span>
-                <span class="pill-url" id="display-url">site.com</span>
-            </div>
-
-            <div class="scan-text">Держите код в центре рамки</div>
         </div>
+
+        <div id="link-preview">
+            <div style="overflow: hidden; flex: 1; margin-right: 10px;">
+                <div style="font-size: 12px; opacity: 0.5;">НАЙДЕНА ССЫЛКА</div>
+                <div id="detected-url" style="font-weight: 600; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">google.com</div>
+            </div>
+            <button onclick="redirectToUrl()" class="btn-liquid" style="width: 80px; height: 40px; font-size: 14px; background: white; color: black;">
+                Открыть
+            </button>
+        </div>
+    </div>
+
+    <div class="blur-overlay" id="overlay" onclick="closeSettings()"></div>
+    <div id="settings-sheet">
+        <div class="sheet-handle"></div>
+        <h2>Настройки</h2>
+        
+        <div class="setting-row">
+            <span>Прямой переход (без плашки)</span>
+            <input type="checkbox" id="direct-jump" class="ios-switch">
+        </div>
+        
+        <div class="setting-row" style="opacity: 0.5;">
+            <span>Тактильная отдача</span>
+            <input type="checkbox" checked disabled class="ios-switch">
+        </div>
+
+        <button class="btn-liquid" onclick="closeSettings()" style="margin-top: 40px; width: 100%; height: 55px; background: var(--ios-card); color: var(--ios-text); border: 1px solid rgba(128,128,128,0.3);">
+            Готово
+        </button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        const video = document.getElementById('video-preview');
-        const canvas = document.getElementById('scan-canvas');
-        const context = canvas.getContext('2d', { willReadFrequently: true });
-        const pill = document.getElementById('result-pill');
-        const displayUrl = document.getElementById('display-url');
-        const autoRedirectToggle = document.getElementById('auto-redirect-toggle');
-
-        let scanning = false;
         let lastDetectedUrl = "";
+        let isDirectJump = false;
 
-        tg.BackButton.onClick(() => {
-            stopScanner();
+        // --- LIQUID BUTTON LOGIC ---
+        document.querySelectorAll('.btn-liquid').forEach(btn => {
+            btn.addEventListener('pointerdown', (e) => {
+                btn.style.transform = 'scale(0.96)';
+                btn.style.filter = 'brightness(1.2)';
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            });
+
+            btn.addEventListener('pointermove', (e) => {
+                const rect = btn.getBoundingClientRect();
+                const x = e.clientX - rect.left - rect.width / 2;
+                const y = e.clientY - rect.top - rect.height / 2;
+                // Эффект "мармеладного" смещения
+                btn.style.transform = `scale(0.98) translate(${x/10}px, ${y/10}px)`;
+            });
+
+            btn.addEventListener('pointerup', () => {
+                btn.style.transform = 'scale(1)';
+                btn.style.filter = 'none';
+            });
         });
 
-        async function startScanner() {
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-            
-            // Сбрасываем плашку
-            pill.classList.remove('visible');
-            lastDetectedUrl = "";
+        // --- SCANNER LOGIC ---
+        const video = document.getElementById('video-preview');
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+        let scanning = false;
 
+        document.getElementById('scan-btn').onclick = startScanner;
+
+        async function startScanner() {
             document.getElementById('main-screen').style.display = 'none';
             document.getElementById('scanner-wrapper').style.display = 'block';
             tg.BackButton.show();
 
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } 
-                });
-                video.srcObject = stream;
-                video.play();
-                scanning = true;
-                requestAnimationFrame(tick);
-            } catch (err) {
-                alert("Нет доступа к камере");
-                stopScanner();
-            }
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "environment" } 
+            });
+            video.srcObject = stream;
+            video.play();
+            scanning = true;
+            requestAnimationFrame(tick);
         }
 
-        function stopScanner() {
+        tg.BackButton.onClick(() => {
             scanning = false;
-            tg.BackButton.hide();
-            if (video.srcObject) {
-                video.srcObject.getTracks().forEach(track => track.stop());
-                video.srcObject = null;
-            }
+            video.srcObject.getTracks().forEach(t => t.stop());
             document.getElementById('scanner-wrapper').style.display = 'none';
             document.getElementById('main-screen').style.display = 'flex';
-        }
+            tg.BackButton.hide();
+        });
 
         function tick() {
             if (video.readyState === video.HAVE_ENOUGH_DATA && scanning) {
@@ -293,74 +292,44 @@
                 canvas.width = video.videoWidth;
                 context.drawImage(video, 0, 0, canvas.width, canvas.height);
                 const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
 
-                if (code && code.data !== lastDetectedUrl) {
-                    handleCodeFound(code.data);
+                if (code) {
+                    handleResult(code.data);
                 }
             }
             if (scanning) requestAnimationFrame(tick);
         }
 
-        function handleCodeFound(url) {
+        function handleResult(url) {
+            if (url === lastDetectedUrl) return;
             lastDetectedUrl = url;
-            
+
             if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
 
-            if (autoRedirectToggle.checked) {
-                processResult(url);
-            } else {
-                // Показываем плашку
-                try {
-                    const domain = new URL(url).hostname;
-                    displayUrl.innerText = domain || url;
-                } catch(e) {
-                    displayUrl.innerText = "Открыть ссылку";
-                }
-                pill.classList.add('visible');
-            }
-        }
-
-        function confirmRedirect() {
-            if (lastDetectedUrl) {
-                processResult(lastDetectedUrl);
-            }
-        }
-
-        function processResult(url) {
-            scanning = false;
-            // Небольшая задержка для визуального отклика
-            setTimeout(() => {
+            if (document.getElementById('direct-jump').checked) {
                 window.location.href = url;
-            }, 100);
+            } else {
+                const preview = document.getElementById('link-preview');
+                document.getElementById('detected-url').innerText = url.replace('https://', '').replace('http://', '');
+                preview.classList.add('show');
+            }
         }
 
-        function scanFromFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        function redirectToUrl() {
+            if (lastDetectedUrl) window.location.href = lastDetectedUrl;
+        }
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    context.drawImage(img, 0, 0);
-                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                    const code = jsQR(imageData.data, imageData.width, imageData.height);
-                    
-                    if (code) {
-                        handleCodeFound(code.data);
-                        // Если авто-переход выключен, мы всё равно "открываем" сканер 
-                        // или просто сразу переходим, так как из галереи подтверждение менее критично
-                        processResult(code.data);
-                    } else {
-                        alert("QR-код не найден");
-                    }
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
+        // --- SETTINGS LOGIC ---
+        function openSettings() {
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('settings-sheet').classList.add('open');
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+        }
+
+        function closeSettings() {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('settings-sheet').classList.remove('open');
         }
     </script>
 </body>
